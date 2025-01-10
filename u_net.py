@@ -7,7 +7,7 @@ TO BUILD THE U-NET FOR THE DIFFUSION MODEL
 # import necessary libraries
 import tensorflow as tf
 import keras
-from keras import layers
+from keras import layers, initializers
 
 # import from local scripts
 from sinusoidal_embedding import SinusoidalEmbedding
@@ -34,10 +34,18 @@ def ResidualBlock(width): # width specify the number of output channels
         if input_width == width:
             residual = x # set residual to be the same as x if it matches
         else:
-            residual = layers.Conv2D(width, kernel_size=1)(x) # set residual to the desired width
-        x = layers.BatchNormalization(center=False, scale=False)(x)
-        x = layers.Conv2D(width, kernel_size=3, padding="same", activation="swish")(x)
-        x = layers.Conv2D(width, kernel_size=3, padding="same")(x)
+            residual = layers.Conv2D(width, kernel_size=1, kernel_initializer=initializers.HeNormal())(x) # set residual to the desired width
+            x = layers.GroupNormalization(groups=8, axis=-1)(x)  
+            x = layers.Activation(keras.activations.silu)(x)  
+        
+        x = layers.Conv2D(width, kernel_size=3, padding="same", kernel_initializer=initializers.HeNormal())(x)
+        x = layers.Activation(keras.activations.silu)(x)  
+        x = layers.GroupNormalization(groups=8, axis=-1)(x)  
+        
+        x = layers.Conv2D(width, kernel_size=3, padding="same", kernel_initializer=initializers.HeNormal())(x)
+        x = layers.Activation(keras.activations.silu)(x)  
+        x = layers.GroupNormalization(groups=8, axis=-1)(x)  
+        
         x = layers.Add()([x, residual])
         return x
     return apply
@@ -62,7 +70,8 @@ def DownBlock(width, block_depth):
         for _ in range(block_depth):
             x = ResidualBlock(width)(x)
             skips.append(x)
-        x = layers.AveragePooling2D(pool_size=2)(x) 
+        x = layers.Conv2D(width, kernel_size=3, strides=2, padding="same", activation="swish", kernel_initializer=initializers.HeNormal())(x)
+        # x = layers.AveragePooling2D(pool_size=2)(x) 
             # average pooling reduces spatial dimensions
         return x
     return apply
@@ -82,7 +91,8 @@ def UpBlock(width, block_depth):
     # same parameters as downblock with width and block_depth
     def apply(x):
         x, skips = x
-        x = layers.UpSampling2D(size=2, interpolation="bilinear")(x) # upsampling here
+        # x = layers.UpSampling2D(size=2, interpolation="bilinear")(x) # upsampling here
+        x = layers.Conv2DTranspose(width, kernel_size=3, strides=2, padding="same", activation="swish", kernel_initializer=initializers.HeNormal())(x)
         for _ in range(block_depth):
             a = skips.pop()
             # print("this is the concatenate (layer, skip):",  x, "and", a)
@@ -133,7 +143,7 @@ def get_network(image_size, widths, block_depth):
     for _ in range(block_depth):
         #print("this is the bottleneck width" , widths[-1])
         x = ResidualBlock(widths[-1])(x)
-            # stack of residual blocks is applied
+        x = layers.Dropout(0.2)(x)            # stack of residual blocks is applied
         #print("this is bottleneck shape", x)
 
     for width in reversed(widths[:-1]):

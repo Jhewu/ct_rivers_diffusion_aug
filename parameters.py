@@ -11,9 +11,10 @@ import os
 folder_name = "ct_deep_river_diffusion"
 img_folder_name = "flow_large"            # must be in cwd
                                     # where the training dataset is
-folder_path = "all_exp/exp35"
+folder_path = "all_exp/exp3"
+label = "L2"
 
-run_description = "to test max signal rate"
+run_description = "Training it longer to see if this improve performance"
 
 # Create the folder if it exists
 if not os.path.exists(folder_path): 
@@ -26,12 +27,12 @@ logging.basicConfig(filename=f'{folder_path}/model_parameters.log', level=loggin
 
 """ TRAINING PARAMETERS """
 # TRAINING PARAMETERS
-runtime = "inpaint"
+runtime = "inference"
                                     # if it's "training," it's in training mode
                                     # if it's "inference," it's in inference mode
                                     # if It's "inpaint," it's in inpainting mode
-load_and_train = False
-
+load_and_train = True
+eta = 0.9
 
 # MODEL PARAMETERS
 image_size = (200,600)
@@ -44,12 +45,12 @@ pad_to_aspect_ratio = False
 crop_to_aspect_ratio = True     
 
 # optimization
-num_epochs = 100
-batch_size = 4
+num_epochs = 50
+batch_size = 8
 dataset_repetitions = 1
 ema = 0.999
-learning_rate = 0.00025
-weight_decay = 1e-4
+learning_rate = 3.5e-4
+weight_decay = learning_rate/10
 
 # KID eval
 kid_image_size = 75
@@ -62,19 +63,19 @@ max_signal_rate = 0.95
 
 # u-net architecture
 embedding_dims = 128
-widths = [64, 96, 128, 256]
-block_depth = 3
+widths = [32, 64, 96, 128]
+block_depth = 2
 
 # callback param
-checkpoint_monitor = "val_kid"
-early_stop_monitor = "val_kid"
-early_stop_min_delta = 2.5e-5
+checkpoint_monitor = "n_loss"
+early_stop_monitor = "n_loss"
+early_stop_min_delta = learning_rate/10
 early_stop_patience = 25
 early_stop_start_epoch = 50
-plot_on_epoch = 100000
+generate_on_epoch = 100000
 
 """ INFERENCE PARAMETERS """
-images_to_generate = 1
+images_to_generate = 5
 generate_diffusion_steps = 30
 
 """ INPAINTING PARAMETERS """
