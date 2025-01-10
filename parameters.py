@@ -32,7 +32,7 @@ runtime = "inference"
                                     # if it's "inference," it's in inference mode
                                     # if It's "inpaint," it's in inpainting mode
 load_and_train = True
-eta = 0.9
+eta = 0
 
 # MODEL PARAMETERS
 image_size = (200,600)

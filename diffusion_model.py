@@ -94,48 +94,12 @@ class DiffusionModel(keras.Model):
 
         return pred_noises, pred_images
 
-    """PREVIOUS IMPLEMENTATION OF DDIM SAMPLING"""
-    # def reverse_diffusion(self, initial_noise, diffusion_steps):
-    #     """
-    #     Function for reverse diffusion (sampling). Generates images from initial noise
-    #     by iterating over diffusion steps. At each step, it separates the noisy images into
-    #     components, denoises them and remixes using next signal and noise rates. 
-
-    #     This is a DDIM sampling, where the eta=0, deterministic
-    #     """
-    #     num_images = initial_noise.shape[0]
-    #     step_size = 1.0 / diffusion_steps
-
-    #     next_noisy_images = initial_noise
-    #     for step in range(diffusion_steps):
-    #         noisy_images = next_noisy_images
-
-    #         # Calculate current timestep t and next timestep t-1
-    #         diffusion_times = ops.ones((num_images, 1, 1, 1)) - step * step_size
-    #         next_diffusion_times = diffusion_times - step_size
-
-    #         # Get noise and signal rates for both timesteps
-    #         noise_rates, signal_rates = self.diffusion_schedule(diffusion_times) 
-    #         next_noise_rates, next_signal_rates = self.diffusion_schedule(
-    #             next_diffusion_times
-    #         )
-
-    #         # Predict noise and clean image components
-    #         pred_noises, pred_images = self.denoise(
-    #             noisy_images, noise_rates, signal_rates, training=False
-    #         ) # Network used in eval mode
-
-    #         # Combine predicted components for next step
-    #         next_noisy_images = (
-    #             next_signal_rates * pred_images + next_noise_rates * pred_noises
-    #         )
-    #     return pred_images
-    """PREVIOUS IMPLEMENTATION OF DDIM SAMPLING"""
-
     def reverse_diffusion(self, initial_noise, diffusion_steps):
         """
-        Custom implementation of DDPM sampling (reverse diffusion) process.
-        If use DDIM sampling schedule, set self.eta = 0
+        Custom implementation of both DDIM and DDPM sampling 
+        (reverse diffusion) process. If use DDIM sampling, set eta=0, 
+        if use DDPM sampling, set eta=1, or use hybrid in between such 
+        as eta=0.7
         """
         num_images = initial_noise.shape[0]
         step_size = 1.0 / diffusion_steps
@@ -165,19 +129,12 @@ class DiffusionModel(keras.Model):
                 # Compute variance with numerical stability
                 alpha_t = ops.maximum(tf.square(signal_rates), 1e-7)
                 alpha_s = ops.maximum(tf.square(next_signal_rates), 1e-7)
-
-                # Compute variance for stochastic term using cosine schedule
-                # alpha_t = tf.square(signal_rates)
-                # alpha_s = tf.square(next_signal_rates)
                 
                 variance = ops.clip(
                     (1.0 - alpha_s/alpha_t) * (1.0 - alpha_t) / (1.0 - alpha_s),
                     0.0, 1.0
                 )
-
-                # variance = (1.0 - alpha_s/alpha_t) * (1.0 - alpha_t) / (1.0 - alpha_s)
                 variance = self.eta * variance
-            
                 noise_scale = tf.sqrt(variance)
                 stochastic_term = noise_scale * noise
 
@@ -195,48 +152,63 @@ class DiffusionModel(keras.Model):
     
     def reverse_diffusion_single(self, initial_noise, diffusion_steps):
         """
-        Similar to reverse diffusion, but this one performs reverse 
-        diffusion for each image (batch_size of 1), instead of simultaneously
-        The image processing time will be longer, but it requires less GPU RAM. 
-        This function is meant to be used for inference. 
-
-        ---
-        
-        Function for reverse diffusion (sampling). Generates images from initial noise
-        by iterating over diffusion steps. At each step, it separates the noisy images into
-        components, denoises them and remixes using next signal and noise rates. 
-
-        This is a DDIM sampling, where the eta=0, deterministic
+        Custom Reverse Diffusion (DDPM Sampling schedule). If use DDIM sampling 
+        schedule, set self.eta = 0
+        - Performs reverse diffusion (sampling), not simultaneously, but per image
+        - The processing time will be longer, but it requires less GPU ram
         """
         step_size = 1.0 / diffusion_steps
         pred_images = []
 
-        for i in range(initial_noise.shape[0]): 
+        for i in range(initial_noise.shape[0]):  # Iterate over each image
             next_noisy_image = initial_noise[i]
             
             for step in range(diffusion_steps):
                 noisy_image = next_noisy_image
 
                 # Calculate current timestep t and next timestep t-1
-                diffusion_time = ops.ones((1, 1, 1, 1)) - step * step_size
-                next_diffusion_time = diffusion_time - step_size
+                current_time = ops.ones((1, 1, 1, 1)) - step * step_size
+                next_time = current_time - step_size
 
                 # Get noise and signal rates for both timesteps
-                noise_rate, signal_rate = self.diffusion_schedule(diffusion_time)          
-                next_noise_rate, next_signal_rate = self.diffusion_schedule(next_diffusion_time)
+                noise_rates, signal_rates = self.diffusion_schedule(current_time)
+                next_noise_rates, next_signal_rates = self.diffusion_schedule(next_time)
 
                 # Predict noise and clean image components
                 pred_noise, pred_image = self.denoise(
-                    noisy_image[None, ...], noise_rate, signal_rate, training=False
-                ) # Network used in eval mode
+                    noisy_image[None, ...], noise_rates, signal_rates, training=False)
+                    # Network used in eval mode
+            
+                # Add stochastic noise component (DDPM)
+                if self.eta > 0:
+                    # Scale random noise by both eta and noise rate
+                    noise = keras.random.normal(shape=noisy_image.shape)
+                        
+                    # Compute variance for stochastic term using cosine schedule
+                    alpha_t = ops.maximum(tf.square(signal_rates), 1e-7)
+                    alpha_s = ops.maximum(tf.square(next_signal_rates), 1e-7)
 
-                # Combine predicted components for next step
-                next_noisy_image = (
-                    next_signal_rate * pred_image + next_noise_rate * pred_noise
-                )[0]
-            # Append the images and stacked them when returned
+                    variance = ops.clip(
+                        (1.0 - alpha_s/alpha_t) * (1.0 - alpha_t) / (1.0 - alpha_s),
+                        0.0, 1.0
+                    )
+                    variance = self.eta * variance
+                    noise_scale = tf.sqrt(variance)
+                    stochastic_term = noise_scale * noise
+    
+                    # Combine deterministic and stochastic components
+                    next_noisy_image = (
+                        next_signal_rates * pred_image + 
+                        next_noise_rates * pred_noise +
+                        stochastic_term)[0]
+                else:
+                    # Combine predicted components for next step
+                    next_noisy_image = (
+                        next_signal_rates * pred_image + next_noise_rates * pred_noise)[0]
+                        # This new noisy image will be used in the next step
             pred_images.append(pred_image[0])
         return np.stack(pred_images)
+        
 
     def generate(self, num_images, diffusion_steps, single):
         """
