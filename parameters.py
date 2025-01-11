@@ -46,10 +46,10 @@ crop_to_aspect_ratio = True
 
 # optimization
 num_epochs = 100
-batch_size = 8
+batch_size = 4
 dataset_repetitions = 1
 ema = 0.999
-learning_rate = 3.5e-4
+learning_rate = 2.5e-4
 weight_decay = learning_rate/10
 
 # KID eval
