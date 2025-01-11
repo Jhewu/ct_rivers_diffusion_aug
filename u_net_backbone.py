@@ -39,13 +39,6 @@ class SinusoidalEmbedding(layers.Layer):
             )
         )
         angular_speeds = 2.0 * tf.constant(math.pi) * frequencies
-
-        # Ensure the model works with mixed_precision as well
-        if used_mix_precision: 
-            datatype = tf.float16
-        else: 
-            datatype = tf.float32
-
         self.angular_speeds = tf.cast(angular_speeds, dtype=datatype)
         """
         We compute the frequencies for the sinusoidal embeddings 

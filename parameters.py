@@ -45,7 +45,7 @@ dataset_repetitions = 1
 ema = 0.999
 learning_rate = 2.5e-4
 weight_decay = learning_rate/10
-used_mix_precision = False
+used_mix_precision = True
 
 # sampling
 min_signal_rate = 0.01

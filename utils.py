@@ -12,6 +12,8 @@ import cv2 as cv
 import logging
 from datetime import datetime
 
+from parameters import used_mix_precision
+
 """ HELPER FUNCTIONS """
 def load_dataset(img_folder_name, validation_split, seed, 
                  image_size, crop_to_aspect_ratio, 
@@ -19,6 +21,7 @@ def load_dataset(img_folder_name, validation_split, seed,
     """
     Loads the dataset for training
     """
+    
     cwd = os.getcwd()
     img_dir = os.path.join(cwd, img_folder_name)
     train_ds = tf.keras.preprocessing.image_dataset_from_directory(
@@ -43,7 +46,14 @@ def load_dataset(img_folder_name, validation_split, seed,
         crop_to_aspect_ratio = crop_to_aspect_ratio,
         pad_to_aspect_ratio = pad_to_aspect_ratio,
     )
+
     return train_ds, val_ds
+
+def convert_to_float16(image): 
+    """
+    Prepare the dataset for mixed precision training
+    """
+    return tf.cast(image, tf.float16)
 
 def prepare_dataset(train_ds, val_ds, dataset_repetitions,
                     batch_size): 
@@ -64,6 +74,7 @@ def prepare_dataset(train_ds, val_ds, dataset_repetitions,
         .shuffle(10 * batch_size)
         .batch(batch_size, drop_remainder=True)
         .prefetch(buffer_size=tf.data.AUTOTUNE)) # THIS IS A PREFETCH DATASET
+
     return train_ds, val_ds
 
 def normalize_image(images, _):    

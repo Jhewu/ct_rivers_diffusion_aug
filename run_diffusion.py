@@ -35,9 +35,23 @@ def TrainDiffusionModel():
                  pad_to_aspect_ratio)
     train_dataset, val_dataset = prepare_dataset(train_dataset, val_dataset, dataset_repetitions,
                     batch_size)
-
+    
+    print(train_dataset)
+            
     # Create and compile the model
     model = DiffusionModel(image_size, widths, block_depth, eta)
+
+    # Calculate mean and variance of training dataset for normalization
+    model.normalizer.adapt(train_dataset)
+
+    # Implement mixed_precision if dictated
+    if used_mix_precision: 
+        mixed_precision.set_global_policy("mixed_float16")
+        print("\nUsing mixed_precision float16\n")
+    else: 
+        mixed_precision.set_global_policy("float32")
+        print("\nDefault, using float32\n")
+
     model.compile(
         optimizer=keras.optimizers.AdamW(
             learning_rate=learning_rate, weight_decay=weight_decay
@@ -45,9 +59,6 @@ def TrainDiffusionModel():
         # Loss function: Pixelwise mean absolute error (MAE).
         loss=keras.losses.mean_absolute_error,
     )
-
-    # Calculate mean and variance of training dataset for normalization
-    model.normalizer.adapt(train_dataset)
 
     # Load the model if desired
     if load_and_train: 
@@ -194,14 +205,6 @@ if __name__ == "__main__":
 
     # Only error messages will be displayed
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
-    # Use mixed_precision if dictated
-    if used_mix_precision: 
-        mixed_precision.set_global_policy("mixed_float16")
-        print("\nUsing mixed_precision float16\n")
-    else: 
-        mixed_precision.set_global_policy("float32")
-        print("\nDefault, using float32\n")
         
     if runtime == "training":
         TrainDiffusionModel()
