@@ -11,7 +11,7 @@ from keras import layers, initializers
 import math
 
 # Import from local scripts
-from parameters import embedding_dims
+from parameters import embedding_dims, attention_in_up_down_sample, attention_in_bottleneck, used_mix_precision
 
 """-------------------------------------------------CLASSES------------------------------------------------------"""
 """
@@ -39,7 +39,14 @@ class SinusoidalEmbedding(layers.Layer):
             )
         )
         angular_speeds = 2.0 * tf.constant(math.pi) * frequencies
-        self.angular_speeds = tf.cast(angular_speeds, dtype=tf.float32)
+
+        # Ensure the model works with mixed_precision as well
+        if used_mix_precision: 
+            datatype = tf.float16
+        else: 
+            datatype = tf.float32
+
+        self.angular_speeds = tf.cast(angular_speeds, dtype=datatype)
         """
         We compute the frequencies for the sinusoidal embeddings 
         using exponential and logarithmic operations.
@@ -159,7 +166,9 @@ def DownBlock(width, block_depth):
         for _ in range(block_depth):
             x = ResidualBlock(width)(x)
             skips.append(x)
-            # x = AttentionBlock(num_heads=1, key_dim=width, dropout_rate=0)(x)
+            # Add attention layer if specified
+            if attention_in_up_down_sample: 
+                x = AttentionBlock(num_heads=1, key_dim=width, dropout_rate=0)(x)
         x = layers.Conv2D(width, kernel_size=3, strides=2, padding="same", activation="swish", kernel_initializer=initializers.HeNormal())(x)
         return x
     return apply
@@ -182,8 +191,10 @@ def UpBlock(width, block_depth):
         for _ in range(block_depth):
             a = skips.pop()
             x = layers.Concatenate()([x, a]) 
-            x = ResidualBlock(width)(x)               
-            # x = AttentionBlock(num_heads=1, key_dim=width, dropout_rate=0)(x)
+            x = ResidualBlock(width)(x)       
+            # Add attention layer if specified
+            if attention_in_up_down_sample: 
+                x = AttentionBlock(num_heads=1, key_dim=width, dropout_rate=0)(x)
         return x
     return apply
 
@@ -229,8 +240,9 @@ def get_network(image_size, widths, block_depth):
         # This is the bottleneck
         x = ResidualBlock(widths[-1])(x)
         
-        # Implement an attention layer
-        x = AttentionBlock(num_heads=4, key_dim=widths[-1]//8, dropout_rate=0.2)(x)
+        # Add attention layer if specified
+        if attention_in_bottleneck: 
+            x = AttentionBlock(num_heads=4, key_dim=widths[-1]//8, dropout_rate=0.2)(x)
         
     for width in reversed(widths[:-1]):
         # Each block upsamples the features and reduces the number 

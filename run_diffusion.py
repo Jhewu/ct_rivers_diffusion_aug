@@ -16,8 +16,8 @@ import os
 import matplotlib.pyplot as plt 
 import tensorflow as tf
 import keras
+from keras import mixed_precision
 import cv2 as cv
-import logging
 from datetime import datetime
 import shutil
 
@@ -181,12 +181,28 @@ if __name__ == "__main__":
 
     print("\nIf Keras version is not 3.6.0, and Tensorflow 2.16.1 or 2.17.0 you might run into issues\n")
 
-    # Show if GPU is being used
-    print(f"\nNum GPUs Available: {len(tf.config.list_physical_devices('GPU'))}\n")
-
+    # Set backend to Tensorflow
     os.environ["KERAS_BACKEND"] = "tensorflow"
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
 
+    # Ensure that the model does not take all the GPU memory
+    gpus = tf.config.list_physical_devices("GPU")
+    if gpus: 
+        try: 
+            for gpu in gpus: 
+                tf.config.experimental.set_memory_growth(gpu, True)
+        except RuntimeError as e: print(e)
+
+    # Only error messages will be displayed
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+    # Use mixed_precision if dictated
+    if used_mix_precision: 
+        mixed_precision.set_global_policy("mixed_float16")
+        print("\nUsing mixed_precision float16\n")
+    else: 
+        mixed_precision.set_global_policy("float32")
+        print("\nDefault, using float32\n")
+        
     if runtime == "training":
         TrainDiffusionModel()
     elif runtime == "inference":

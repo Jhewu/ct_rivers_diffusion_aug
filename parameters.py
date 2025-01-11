@@ -4,7 +4,6 @@ FOR THE DIFFUSION MODELS. THIS IS DONE TO AVOID
 CIRCULAR IMPORT. 
 """
 
-import logging
 import os
 
 """ GENERAL PARAMETERS """
@@ -19,11 +18,6 @@ run_description = "Testing if the modification works"
 # Create the folder if it exists
 if not os.path.exists(folder_path): 
     os.makedirs(folder_path)
-
-# Configure logging
-logging.basicConfig(filename=f'{folder_path}/model_parameters.log', level=logging.INFO, 
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 """ TRAINING PARAMETERS """
 # TRAINING PARAMETERS
@@ -51,6 +45,7 @@ dataset_repetitions = 1
 ema = 0.999
 learning_rate = 2.5e-4
 weight_decay = learning_rate/10
+used_mix_precision = False
 
 # sampling
 min_signal_rate = 0.01
@@ -60,6 +55,8 @@ max_signal_rate = 0.95
 embedding_dims = 128
 widths = [32, 64, 96, 128]
 block_depth = 2
+attention_in_bottleneck = False
+attention_in_up_down_sample = False
 
 # callback param
 checkpoint_monitor = "n_loss"
@@ -76,20 +73,6 @@ generate_diffusion_steps = 30
 """ INPAINTING PARAMETERS """
 inpainting_dir = "inpainting_data"
 MASK_AND_IMAGE_DIR = "mask_and_image"
-
-# Log all variables
-logging.info("----------")
-logging.info(f"RUN DESCRIPTION:\n {run_description}\n")
-logging.info(f'GENERAL PARAMETERS:\nfolder_name: {folder_name}\nimg_folder_name: {img_folder_name}\nfolder_path: {folder_path}')
-logging.info("")
-logging.info(f'TRAINING PARAMETERS:\nmode: {runtime}\nload_and_train: {load_and_train}')
-logging.info("")
-logging.info(f'MODEL PARAMETERS:\nimage_size: {image_size}\nseed: {seed}\nvalidation_split: {validation_split}\npad_to_aspect_ratio: {pad_to_aspect_ratio}\ncrop_to_aspect_ratio: {crop_to_aspect_ratio}\nnum_epochs: {num_epochs}\nbatch_size: {batch_size}\ndataset_repetitions: {dataset_repetitions}\nema: {ema}\nlearning_rate: {learning_rate}\nweight_decay: {weight_decay}\nmin_signal_rate: {min_signal_rate}\nmax_signal_rate: {max_signal_rate}\nembedding_dims: {embedding_dims}\nwidths: {widths}\nblock_depth: {block_depth}')
-logging.info("")
-logging.info(f'CALLBACK PARAMETERS:\ncheckpoint_monitor: {checkpoint_monitor}\nearly_stop_monitor: {early_stop_monitor}\nearly_stop_min_delta: {early_stop_min_delta}\nearly_stop_patience: {early_stop_patience}\nearly_stop_start_epoch: {early_stop_start_epoch}')
-logging.info("")
-logging.info(f'INFERENCE PARAMETERS:\nimages_to_generate: {images_to_generate}\ngenerate_diffusion_steps: {generate_diffusion_steps}')
-logging.info("----------")
 
 
 
