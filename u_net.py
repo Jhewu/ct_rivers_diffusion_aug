@@ -4,16 +4,108 @@ TO BUILD THE U-NET FOR THE DIFFUSION MODEL
 """
 
 """ ALL IMPORTS """
-# import necessary libraries
+# Import necessary libraries
 import tensorflow as tf
 import keras
 from keras import layers, initializers
 
-# import from local scripts
+# Import from local scripts
 from sinusoidal_embedding import SinusoidalEmbedding
 from parameters import embedding_dims
 
 """-------------------------------------------------CODE BELOW------------------------------------------------------"""
+
+"""REVIEW THIS CODE TOMORROW"""
+"""Custom Attention Block to fix an error in Keras"""
+# class AttentionBlock(layers.Layer):
+#     def __init__(self, num_heads=4, dropout_rate=0.2, **kwargs):
+#         super().__init__(**kwargs)
+#         self.num_heads = num_heads
+#         self.dropout_rate = dropout_rate
+    
+#     def build(self, input_shape):
+#         channels = input_shape[-1]
+#         height = input_shape[1]
+#         width = input_shape[2]
+        
+#         self.reshape1 = layers.Reshape((-1, channels))
+#         self.attention = layers.MultiHeadAttention(
+#             num_heads=self.num_heads,
+#             key_dim=channels // self.num_heads
+#         )
+#         self.reshape2 = layers.Reshape((height, width, channels))
+#         self.dropout = layers.Dropout(self.dropout_rate)
+        
+#     def call(self, inputs):
+#         x = self.reshape1(inputs)
+#         x = self.attention(x, x)
+#         x = self.reshape2(x)
+#         return self.dropout(inputs + x)
+
+#     def compute_output_shape(self, input_shape):
+#         return input_shape
+
+class AttentionBlock(layers.Layer):
+    def __init__(self, num_heads=4, dropout_rate=0.2, use_bias=True, **kwargs):
+        super().__init__(**kwargs)
+        self.num_heads = num_heads
+        self.dropout_rate = dropout_rate
+        self.use_bias = use_bias
+        
+    def build(self, input_shape):
+        channels = input_shape[-1]
+        self.height = input_shape[1]
+        self.width = input_shape[2]
+        
+        # Ensure channels are divisible by num_heads
+        if channels % self.num_heads != 0:
+            raise ValueError(
+                f'Number of channels ({channels}) must be divisible '
+                f'by number of heads ({self.num_heads})'
+            )
+        
+        self.reshape1 = layers.Reshape((-1, channels))
+        self.attention = layers.MultiHeadAttention(
+            num_heads=self.num_heads,
+            key_dim=channels // self.num_heads,
+            use_bias=self.use_bias
+        )
+        self.reshape2 = layers.Reshape((self.height, self.width, channels))
+        self.dropout = layers.Dropout(self.dropout_rate)
+        
+        # Add layer normalization for better stability
+        self.layer_norm = layers.LayerNormalization(epsilon=1e-6)
+        
+        super().build(input_shape)
+    
+    def call(self, inputs, training=None):
+        # Apply layer normalization first (pre-norm formulation)
+        x = self.layer_norm(inputs)
+        
+        # Reshape to sequence
+        x = self.reshape1(x)
+        
+        # Apply self-attention
+        attention_output = self.attention(x, x, return_attention_scores=False)
+        
+        # Reshape back to original dimensions
+        x = self.reshape2(attention_output)
+        
+        # Apply dropout and residual connection
+        x = self.dropout(x, training=training)
+        return inputs + x
+    
+    def compute_output_shape(self, input_shape):
+        return input_shape
+        
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'num_heads': self.num_heads,
+            'dropout_rate': self.dropout_rate,
+            'use_bias': self.use_bias,
+        })
+        return config
 
 """
 HIGH LEVEL SUMMARY: 
@@ -70,6 +162,7 @@ def DownBlock(width, block_depth):
         for _ in range(block_depth):
             x = ResidualBlock(width)(x)
             skips.append(x)
+            x = AttentionBlock(num_heads=1, dropout_rate=0)(x)
         x = layers.Conv2D(width, kernel_size=3, strides=2, padding="same", activation="swish", kernel_initializer=initializers.HeNormal())(x)
         # x = layers.AveragePooling2D(pool_size=2)(x) 
             # average pooling reduces spatial dimensions
@@ -97,7 +190,8 @@ def UpBlock(width, block_depth):
             a = skips.pop()
             # print("this is the concatenate (layer, skip):",  x, "and", a)
             x = layers.Concatenate()([x, a]) # concatenates the upsampled tensor with
-            x = ResidualBlock(width)(x)                # the last tensor stored in skips (a stack)
+            x = ResidualBlock(width)(x)                # the last tensor stored in skips (a 
+            x = AttentionBlock(num_heads=1, dropout_rate=0)(x)
         return x
     return apply
         # returns upsampled tensor
@@ -143,8 +237,10 @@ def get_network(image_size, widths, block_depth):
     for _ in range(block_depth):
         #print("this is the bottleneck width" , widths[-1])
         x = ResidualBlock(widths[-1])(x)
-        x = layers.Dropout(0.2)(x)            # stack of residual blocks is applied
-        #print("this is bottleneck shape", x)
+
+        # Implement an attention layer
+        """REVIEW LATER TO UNDERSTAND IT MORE"""
+        x = AttentionBlock(num_heads=4)(x)
 
     for width in reversed(widths[:-1]):
         #print("this is upblock width", width)

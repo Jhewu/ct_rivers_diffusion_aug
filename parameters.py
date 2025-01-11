@@ -11,10 +11,10 @@ import os
 folder_name = "ct_deep_river_diffusion"
 img_folder_name = "flow_large"            # must be in cwd
                                     # where the training dataset is
-folder_path = "all_exp/exp3"
+folder_path = "all_exp/exp4"
 label = "L2"
 
-run_description = "Training it longer to see if this improve performance"
+run_description = "Added multihead attention to the bottleneck, and added single head attention into the downsampling and upsampling blocks"
 
 # Create the folder if it exists
 if not os.path.exists(folder_path): 
@@ -27,12 +27,12 @@ logging.basicConfig(filename=f'{folder_path}/model_parameters.log', level=loggin
 
 """ TRAINING PARAMETERS """
 # TRAINING PARAMETERS
-runtime = "inference"
+runtime = "training"
                                     # if it's "training," it's in training mode
                                     # if it's "inference," it's in inference mode
                                     # if It's "inpaint," it's in inpainting mode
-load_and_train = True
-eta = 0
+load_and_train = False
+eta = 0.5
 
 # MODEL PARAMETERS
 image_size = (200,600)
@@ -45,7 +45,7 @@ pad_to_aspect_ratio = False
 crop_to_aspect_ratio = True     
 
 # optimization
-num_epochs = 50
+num_epochs = 100
 batch_size = 8
 dataset_repetitions = 1
 ema = 0.999
@@ -62,9 +62,9 @@ min_signal_rate = 0.01
 max_signal_rate = 0.95
 
 # u-net architecture
-embedding_dims = 128
-widths = [32, 64, 96, 128]
-block_depth = 2
+embedding_dims = 256
+widths = [64, 96, 128, 256]
+block_depth = 3
 
 # callback param
 checkpoint_monitor = "n_loss"
