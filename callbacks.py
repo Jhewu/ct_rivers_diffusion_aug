@@ -1,17 +1,16 @@
 """
 THIS SCRIPT CONTAINS ALL THE CALLBACK FUNCTIONS 
-FOR THE DIFFUSION MODEL
+FOR THE DIFFUSION MODEL. MAINLY USED IN RUN_DIFFUSION
 """
 
 # Import necessary libraries
+import os
 import keras
-import csv
 import tensorflow as tf
-import numpy
 import datetime
 
 # Import form local script
-from parameters import folder_path, checkpoint_monitor, early_stop_monitor, early_stop_patience, early_stop_start_epoch, early_stop_min_delta, generate_on_epoch
+from parameters import folder_path, checkpoint_monitor, early_stop_monitor, early_stop_patience, early_stop_start_epoch, early_stop_min_delta, generate_on_epoch, generate_diffusion_steps, label
 
 # Get current time
 current_time = datetime.datetime.now() 
@@ -37,7 +36,6 @@ class CustomCallback(keras.callbacks.Callback):
             # Save the generated images
             index = 1
             for image in generated_images: 
-                image_name = f"S0_D{formatted_time}_{formatted_time}_0_{index}_DM_AUG_{label}.JPG"
                 tf.keras.preprocessing.image.save_img(f"{generated_dir}/{formatted_time}_generated_img_{index}.jpg", image) 
                 index = index + 1
 

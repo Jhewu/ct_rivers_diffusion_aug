@@ -11,10 +11,10 @@ import os
 folder_name = "ct_deep_river_diffusion"
 img_folder_name = "flow_large"            # must be in cwd
                                     # where the training dataset is
-folder_path = "all_exp/exp4"
+folder_path = "all_exp/exp5"
 label = "L2"
 
-run_description = "Added multihead attention to the bottleneck, and added single head attention into the downsampling and upsampling blocks"
+run_description = "Testing if the modification works"
 
 # Create the folder if it exists
 if not os.path.exists(folder_path): 
@@ -40,31 +40,26 @@ image_size = (200,600)
 
 # preprocessing
 seed = 42
-validation_split = 0.2
+validation_split = 0.15
 pad_to_aspect_ratio = False
 crop_to_aspect_ratio = True     
 
 # optimization
-num_epochs = 100
+num_epochs = 1
 batch_size = 4
 dataset_repetitions = 1
 ema = 0.999
 learning_rate = 2.5e-4
 weight_decay = learning_rate/10
 
-# KID eval
-kid_image_size = 75
-plot_diffusion_steps = 20
-kid_diffusion_steps = 5
-
 # sampling
 min_signal_rate = 0.01
 max_signal_rate = 0.95
 
 # u-net architecture
-embedding_dims = 256
-widths = [64, 96, 128, 256]
-block_depth = 3
+embedding_dims = 128
+widths = [32, 64, 96, 128]
+block_depth = 2
 
 # callback param
 checkpoint_monitor = "n_loss"
@@ -89,7 +84,7 @@ logging.info(f'GENERAL PARAMETERS:\nfolder_name: {folder_name}\nimg_folder_name:
 logging.info("")
 logging.info(f'TRAINING PARAMETERS:\nmode: {runtime}\nload_and_train: {load_and_train}')
 logging.info("")
-logging.info(f'MODEL PARAMETERS:\nimage_size: {image_size}\nseed: {seed}\nvalidation_split: {validation_split}\npad_to_aspect_ratio: {pad_to_aspect_ratio}\ncrop_to_aspect_ratio: {crop_to_aspect_ratio}\nnum_epochs: {num_epochs}\nbatch_size: {batch_size}\ndataset_repetitions: {dataset_repetitions}\nema: {ema}\nlearning_rate: {learning_rate}\nweight_decay: {weight_decay}\nkid_image_size: {kid_image_size}\nplot_diffusion_steps: {plot_diffusion_steps}\nkid_diffusion_steps: {kid_diffusion_steps}\nmin_signal_rate: {min_signal_rate}\nmax_signal_rate: {max_signal_rate}\nembedding_dims: {embedding_dims}\nwidths: {widths}\nblock_depth: {block_depth}')
+logging.info(f'MODEL PARAMETERS:\nimage_size: {image_size}\nseed: {seed}\nvalidation_split: {validation_split}\npad_to_aspect_ratio: {pad_to_aspect_ratio}\ncrop_to_aspect_ratio: {crop_to_aspect_ratio}\nnum_epochs: {num_epochs}\nbatch_size: {batch_size}\ndataset_repetitions: {dataset_repetitions}\nema: {ema}\nlearning_rate: {learning_rate}\nweight_decay: {weight_decay}\nmin_signal_rate: {min_signal_rate}\nmax_signal_rate: {max_signal_rate}\nembedding_dims: {embedding_dims}\nwidths: {widths}\nblock_depth: {block_depth}')
 logging.info("")
 logging.info(f'CALLBACK PARAMETERS:\ncheckpoint_monitor: {checkpoint_monitor}\nearly_stop_monitor: {early_stop_monitor}\nearly_stop_min_delta: {early_stop_min_delta}\nearly_stop_patience: {early_stop_patience}\nearly_stop_start_epoch: {early_stop_start_epoch}')
 logging.info("")

@@ -1,6 +1,6 @@
 """
 THIS SCRIPT CONTAINS THE NECESSARY COMPONENTS 
-TO BUILD THE U-NET FOR THE DIFFUSION MODEL
+TO BUILD THE U-NET BACKBONE FOR THE DIFFUSION MODEL
 """
 
 """ ALL IMPORTS """
@@ -8,15 +8,59 @@ TO BUILD THE U-NET FOR THE DIFFUSION MODEL
 import tensorflow as tf
 import keras
 from keras import layers, initializers
+import math
 
 # Import from local scripts
-from sinusoidal_embedding import SinusoidalEmbedding
 from parameters import embedding_dims
 
-"""-------------------------------------------------CODE BELOW------------------------------------------------------"""
+"""-------------------------------------------------CLASSES------------------------------------------------------"""
+"""
+Creating a custom layer called Sinusoidal Embedding
+to replace Lambda layers that were causing  errors 
+(probably due to dependencies reasons)
+"""
+@keras.saving.register_keras_serializable()
+class SinusoidalEmbedding(layers.Layer): 
+    def __init__(self, embedding_dims, **kwargs):
+        super(SinusoidalEmbedding, self).__init__(**kwargs)
+        self.embedding_dims = embedding_dims
+    def build(self, input_shape):
+        """
+        Taken from the local sinusoidal_embedding 
+        Build method is called when building the layer
+        """
+        self.embedding_min_frequency = 1.0
+        self.embedding_max_frequency = 1000.0  # You can adjust this value
+        frequencies = tf.exp(
+            tf.linspace(
+                tf.math.log(self.embedding_min_frequency),
+                tf.math.log(self.embedding_max_frequency),
+                self.embedding_dims // 2,
+            )
+        )
+        angular_speeds = 2.0 * tf.constant(math.pi) * frequencies
+        self.angular_speeds = tf.cast(angular_speeds, dtype=tf.float32)
+        """
+        We compute the frequencies for the sinusoidal embeddings 
+        using exponential and logarithmic operations.
+        """
+    def call(self, x):
+        """
+        We compute the sinusoidal embeddings by concatenating sine
+        and cosine functions of the angular speeds.
+        The output embeddings contain both sine and cosine components.
+        """
+        embeddings = tf.concat(
+            [tf.sin(self.angular_speeds * x), tf.cos(self.angular_speeds * x)], axis=-1
+        )
+        return embeddings
 
 """REVIEW THIS CODE TOMORROW"""
-"""Custom Attention Block to fix an error in Keras"""
+"""
+Custom Attention Block to fix an error in Keras. 
+For some reason, it only works if I wrap it on a Keras
+layers, due to the difference between a Tf_fn and Keras layers
+"""
 @keras.saving.register_keras_serializable()
 class AttentionBlock(layers.Layer):
     def __init__(self, num_heads=4, key_dim=128, dropout_rate=0.2, **kwargs):
@@ -55,7 +99,8 @@ class AttentionBlock(layers.Layer):
         x = self.dropout(x)
         
         return x
-
+    
+"""-------------------------------------------------U-NET BLOCKS------------------------------------------------------"""
 """
 HIGH LEVEL SUMMARY: 
 This function defines a residual block for a neural network
@@ -69,13 +114,16 @@ layer
     - Finally, it adds the residual tensor to the output tensor and returns it.
 """
 @keras.saving.register_keras_serializable()
-def ResidualBlock(width): # width specify the number of output channels
+def ResidualBlock(width): 
+    # Width specify the number of output channels
     def apply(x):
         input_width = x.shape[3]
         if input_width == width:
-            residual = x # set residual to be the same as x if it matches
+             # Set residual to be the same as x if it matches
+            residual = x
         else:
-            residual = layers.Conv2D(width, kernel_size=1, kernel_initializer=initializers.HeNormal())(x) # set residual to the desired width
+            # Set residual to the desired width
+            residual = layers.Conv2D(width, kernel_size=1, kernel_initializer=initializers.HeNormal())(x) 
             x = layers.GroupNormalization(groups=8, axis=-1)(x)  
             x = layers.Activation(keras.activations.silu)(x)  
         
@@ -103,9 +151,9 @@ This function defines a downsampling block that reduces the spatial dimensions o
 """
 @keras.saving.register_keras_serializable()
 def DownBlock(width, block_depth): 
-    # width is number of output channels for the residual blocks
-    # block_depth determines how many residual blocks are stacked in this 
-        # downsampling block
+    # Width is number of output channels for the residual blocks
+    # Block_depth determines how many residual blocks are stacked in this 
+    # downsampling block
     def apply(x):
         x, skips = x
         for _ in range(block_depth):
@@ -113,11 +161,8 @@ def DownBlock(width, block_depth):
             skips.append(x)
             # x = AttentionBlock(num_heads=1, key_dim=width, dropout_rate=0)(x)
         x = layers.Conv2D(width, kernel_size=3, strides=2, padding="same", activation="swish", kernel_initializer=initializers.HeNormal())(x)
-        # x = layers.AveragePooling2D(pool_size=2)(x) 
-            # average pooling reduces spatial dimensions
         return x
     return apply
-        # returns the downsampled tensor
 
 """
 HIGH LEVEL SUMMARY:
@@ -133,18 +178,16 @@ def UpBlock(width, block_depth):
     # same parameters as downblock with width and block_depth
     def apply(x):
         x, skips = x
-        # x = layers.UpSampling2D(size=2, interpolation="bilinear")(x) # upsampling here
         x = layers.Conv2DTranspose(width, kernel_size=3, strides=2, padding="same", activation="swish", kernel_initializer=initializers.HeNormal())(x)
         for _ in range(block_depth):
             a = skips.pop()
-            # print("this is the concatenate (layer, skip):",  x, "and", a)
-            x = layers.Concatenate()([x, a]) # concatenates the upsampled tensor with
-            x = ResidualBlock(width)(x)                # the last tensor stored in skips (a 
+            x = layers.Concatenate()([x, a]) 
+            x = ResidualBlock(width)(x)               
             # x = AttentionBlock(num_heads=1, key_dim=width, dropout_rate=0)(x)
         return x
     return apply
-        # returns upsampled tensor
 
+"""-------------------------------------------------BUILDING THE UNET------------------------------------------------------"""
 """
 HIGH LEVEL SUMMARY: 
     - Creates U-Net Model
@@ -155,50 +198,47 @@ HIGH LEVEL SUMMARY:
 """
 @keras.saving.register_keras_serializable()
 def get_network(image_size, widths, block_depth):
-    noisy_images = keras.Input(shape=(image_size[0], image_size[1], 3)) # Input for noisy images
-    noise_variances = keras.Input(shape=(1, 1, 1))                # Input for noise variances
+    # Input for noisy images
+    noisy_images = keras.Input(shape=(image_size[0], image_size[1], 3)) 
+    
+    # Input for noise variances
+    noise_variances = keras.Input(shape=(1, 1, 1))                
 
-    #print("this is noisy images", noisy_images)
-
+    # Create a sinusoidal layer from our custom Sinusoidal embedding layer
     sinusoidal_layer = SinusoidalEmbedding(embedding_dims) 
-        # from our custom Sinusoidal Embeddig Layer 
     
     # Call the layer with your input (e.g., noise_variances)
+    # Noise variances inputed to sinusoidal layer
+    # then to upsampling using nearest neighbor interpolation
     e = sinusoidal_layer(noise_variances)
     e = layers.UpSampling2D(size=image_size, interpolation="nearest")(e)
-        # noise variances inputwidthed to sinusoidal layer
-        # then to upsampling using nearest neighbor interpolation
 
+    # Noisy images input into Conv2D 
+    # output is concatenated with e
     x = layers.Conv2D(widths[0], kernel_size=1)(noisy_images)
     x = layers.Concatenate()([x, e])
-        # noisy images input into Conv2D 
-        # output is concatenated with e
 
-    skips = [] # skip is a list
+    skips = [] # skips stores the skip connections
     for width in widths[:-1]:
-        #print("this is downblock width", width)
+        # Series of downblocks are applied to the concatenated features
+        # each downblock reduces spatial resolution and increases the number
+        # of filters
         x = DownBlock(width, block_depth)([x, skips])
-            # series of downblocks are applied to the concatenated features
-            # each downblock reduces spatial resolution and increases the number
-                # of filters
-        #("this is downblock shape", x)
 
     for _ in range(block_depth):
-        #print("this is the bottleneck width" , widths[-1])
+        # This is the bottleneck
         x = ResidualBlock(widths[-1])(x)
         
         # Implement an attention layer
         x = AttentionBlock(num_heads=4, key_dim=widths[-1]//8, dropout_rate=0.2)(x)
         
     for width in reversed(widths[:-1]):
-        #print("this is upblock width", width)
+        # Each block upsamples the features and reduces the number 
+        # of filters
         x = UpBlock(width, block_depth)([x, skips])
-            # each block upsamples the features and reduces the number 
-                # of filters
-        #print("this is upblock shape", x)
 
+    # Final convolution, 1x1 convolution with 3 channels (RGB) is applied to the output
     x = layers.Conv2D(3, kernel_size=1, kernel_initializer="zeros")(x)
-        # final convolution, 1x1 convolution with 3 channels (RGB) is applied to the output
 
     return keras.Model([noisy_images, noise_variances], x, name="residual_unet")
 

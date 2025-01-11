@@ -9,17 +9,13 @@ import tensorflow as tf
 import keras
 from keras import layers
 from keras import ops
-import os
 import numpy as np
 import cv2 as cv
-import time
 
 # Import from local scripts
-from u_net import get_network
+from u_net_backbone import get_network
 from parameters import (max_signal_rate, min_signal_rate, 
-                      image_size, batch_size, kid_diffusion_steps,
-                      ema, plot_diffusion_steps, folder_path, generate_diffusion_steps)
-
+                      image_size, batch_size, ema)
 
 @keras.saving.register_keras_serializable()
 class DiffusionModel(keras.Model): 
@@ -34,8 +30,8 @@ class DiffusionModel(keras.Model):
     def compile(self, **kwargs):
         """
         Compile method is overridden to create custom metrics
-        such as noise loss, image loss and KID
-        these metrics will be tracked during training
+        such as noise loss, and image loss
+        these metrics will be tracked during training. 
         """
         super().compile(**kwargs)
 
