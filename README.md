@@ -1,77 +1,85 @@
-    > You can either run a single model or run a training loop that trains
-      3-6 diffusion models with the respective labels. If you want to run a single
-      model, then 
+# CT Rivers Diffusion Model
 
+## Overview
 
-    You can modify parameters
+This project aims to improve image classification accuracy for CT river images by using diffusion models to artificially augment the dataset. This approach ensures a balanced dataset, which is often not the case in environmental image datasets, and exposes the classification model to more image diversity, leading to better generalization.
 
-    You can either modify the parameters in config.py and run 
-    'python3 run_diffusion.py' to run a single model, or if you want 
-    to train 3-6 models in a training loop, 
+## Changing Parameters for the Diffusion Model
 
+There are two ways to change the parameters for the diffusion model:
 
-    You can either modify parameters in config.py and run 'run_diffusion'
-    to run single models, or if you want to train 3-6 models in a training loop, 
-    use the argparse parameters below. 
+1. **Modify `config.py` directly:**  
+   You can open the `config.py` file and manually modify the parameters. This provides full control over all available settings.
+   
+2. **Use `argparse` to pass arguments:**  
+   You can also pass parameters via the command line using argparse. **Note:** Not all parameters are available via argparse. If you need to modify parameters not exposed through argparse, you'll need to update the `config.py` directly.
 
+## How to Use (Training & Inference)
 
-    - --in_dir: 
-    The directory containing the label folder with river images. 
-    The structure should be similar to 'L1/1/image.JPG'.
+To train a single model or perform inference on a single model, use `run_diffusion.py` only. 
 
-    - --out_dir:
-        The directory where model weights, callbacks, and results will be saved.
+### Training the Model (using `config.py`)
 
-    - --runtime: 
-        Specifies the run mode. Options are:
-            - "training": for training the model.
-            - "inference": for generating predictions using a trained model.
-            - "inpainting": for using the model for image inpainting.
+1. Set `runtime = "training"` in the `config.py`.
+2. Set `in_dir` to the dataset directory, including the label (e.g., `diffusion_data/L2`).
+3. Modify other important training parameters like `num_epochs`, `batch_size`, or `learning_rate`.
+4. Run the following command in the terminal:  
 
-    - --load_and_train:
-        A boolean flag indicating whether to load a pre-trained model for further training.
+    ```
+    python3 run_diffusion.py 
+    ```
 
-    - --eta:
-        The eta parameter used for noise scheduling in the model's diffusion process.
+### Training the Model (using `argparse`)
 
-    - --image_size: 
-        A tuple specifying the size of the input images (height, width) for training or inference.
+1. Add as many `argparse` arguments like below:
 
-    - --num_epochs:
-        The number of epochs for training the model.
+    ```
+    python3 run_diffusion.py --in_dir diffusion_data/L2 --learning_rate 1e-5 --batch_size 8
+    ```
 
-    - --batch_size:
-        The batch size used during training.
+### Perform Inference (using `config.py`):
 
-    - --learning_rate:
-        The learning rate used for model training optimization.
+1. Train a model, and ensure `config.py` is the same as during training
+2. Modify `model_dir` to the folder where the weight is located, e.g., `"results/L2_2025-01-12_14:55:51"`.
+3. Modify other important parameters such as `images_to_generate` and `generate_diffusion_steps`, and then run the following command: 
 
-    - --use_mix_precision:
-        A boolean flag indicating whether to use mixed precision training to speed up training and reduce memory usage.
+    ```
+    python3 run_diffusion.py
+    ```
 
-    - --gpu_index:
-        The index of the GPU to be used for training.
+### Perform Inference (using `argparse`):
 
-    - --embedding_dims:
-        The dimensions for embeddings used in the model.
+1. Set `--runtime inference` and provide the directory of the model's weights `--model_dir` like this:   
 
-    - --widths:
-        A list of integers specifying the widths for each convolutional layer in the model's architecture.
+    ```
+    python3 run_diffusion --runtime inference --model_dir results/L2_2025-01-12_14:55:51
+    ```
 
-    - --block_depth:
-        The depth of the U-Net blocks used in the model.
+## Training multiple models
 
-    - --attention_in_bottleneck:
-        A boolean flag indicating whether attention is used in the bottleneck layer of the U-Net.
+To train multiple models, use `run_training_loop.py`. `run_training_loop.py` serves as a training loop for `run_diffusion.py`. It uses argparse to parse all of the arguments requested to run `run_diffusion.py`. **NOTE:** to run `run_diffusion.py`, you do not need to pass any arguments, as the `config.py` file contains default values.
 
-    - --attention_in_up_down_sample:
-        A boolean flag indicating whether attention is used in the up/down sampling layers of the U-Net.
+However, `run_training_loop` will require you to provide `--in_dir`, which is the location of your dataset. If you use my diffusion augmentation script, the `in_dir` path is simply: `pwd/diffusion_data`.
 
-    - --model_dir:
-        The directory where the model's weight files are located.
+### Changing Parameters for Within the Training Loop
 
-    - --images_to_generate:
-        The number of images to generate during inference or prediction.
+There are two ways to change parameters:
 
-    - --generate_diffusion_steps:
-        The number of diffusion steps to take during image generation.
+1. Directly modify the `config.py`.
+2. Use argparse to pass arguments. **NOTE:** Not all parameters are available for argparse. If you wish to modify them, edit the `config.py` directly.
+
+**NOTE:** If you're using `run_training_loop.py`, the `config.py` file copied to the output directory will not reflect the parameters you used (because it does not update from argparse). Instead, focus on the `config_parameters.txt` file.
+
+### How to Use `run_training_loop.py`
+
+#### If you want to use default parameters:  
+
+```
+python3 run_training_loop.py --in_dir pwd/diffusion_data
+```
+
+#### If you want to change some parameters: 
+
+```
+python3 run_training_loop.py --in_dir pwd/diffusion_data --learning_rate 1e-5 --batch_size 8
+```
