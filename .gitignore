@@ -8,4 +8,5 @@ sh_scripts/
 archive_parameters/
 .ipynb_checkpoints/
 token.txt
-balanced_data_for_diffusion/
+results/
+diffusion_data

@@ -88,7 +88,9 @@ def load_inpainting_data_temp(mask_and_image_dir):
     return image_dir_list, mask_dir_list, image_dir, mask_dir
 
 def save_history(history, folder_path):
-    # Saves the plot of the history
+    """
+    Saves the plot of the history
+    """
     for key in history.history.keys():
         plt.plot(history.history[key], label=key)
 
@@ -100,3 +102,10 @@ def save_history(history, folder_path):
     # Save the plot
     plt.savefig(f"{folder_path}/training_loss.png")
     plt.close()    
+
+def CreateDir(folder_name):
+   """
+   Create directory if there's none
+   """
+   if not os.path.exists(folder_name):
+       os.makedirs(folder_name)   
