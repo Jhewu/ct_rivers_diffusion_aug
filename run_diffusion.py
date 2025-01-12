@@ -168,7 +168,7 @@ def InferenceDiffusionModel(model):
     model.load_weights(f"{config.model_dir}/best_diffusion_model.weights.h5")
 
     # Generate the images
-    generated_images = model.generate(config.images_to_generate, config.generate_diffusion_steps, True)
+    generated_images = model.generate(config.images_to_generate, config.generate_diffusion_steps)
 
     # Create directory in model's folder and save the images
     generated_dir = os.path.join(config.model_dir, "generated_images")
