@@ -10,9 +10,6 @@ import keras
 from keras import layers, initializers
 import math
 
-# Import from local scripts
-from parameters import embedding_dims, attention_in_up_down_sample, attention_in_bottleneck, used_mix_precision
-
 """-------------------------------------------------CLASSES------------------------------------------------------"""
 """
 Creating a custom layer called Sinusoidal Embedding
@@ -39,7 +36,7 @@ class SinusoidalEmbedding(layers.Layer):
             )
         )
         angular_speeds = 2.0 * tf.constant(math.pi) * frequencies
-        self.angular_speeds = tf.cast(angular_speeds, dtype=datatype)
+        self.angular_speeds = tf.cast(angular_speeds, dtype=tf.float32)
         """
         We compute the frequencies for the sinusoidal embeddings 
         using exponential and logarithmic operations.
@@ -150,7 +147,7 @@ This function defines a downsampling block that reduces the spatial dimensions o
     - The function returns the downsampled tensor.
 """
 @keras.saving.register_keras_serializable()
-def DownBlock(width, block_depth): 
+def DownBlock(width, block_depth, attention_in_up_down_sample): 
     # Width is number of output channels for the residual blocks
     # Block_depth determines how many residual blocks are stacked in this 
     # downsampling block
@@ -176,7 +173,7 @@ This function defines an upsampling block that increases the spatial dimensions 
         - The function returns the upsampled tensor.
 """
 @keras.saving.register_keras_serializable()
-def UpBlock(width, block_depth):
+def UpBlock(width, block_depth, attention_in_up_down_sample):
     # same parameters as downblock with width and block_depth
     def apply(x):
         x, skips = x
@@ -200,8 +197,9 @@ HIGH LEVEL SUMMARY:
     - Uses the few functions mentioned above
     - Check comments for more information
 """
+
 @keras.saving.register_keras_serializable()
-def get_network(image_size, widths, block_depth):
+def get_network(image_size, widths, block_depth, embedding_dims, attention_in_up_down_sample, attention_in_bottleneck):
     # Input for noisy images
     noisy_images = keras.Input(shape=(image_size[0], image_size[1], 3)) 
     
@@ -227,7 +225,7 @@ def get_network(image_size, widths, block_depth):
         # Series of downblocks are applied to the concatenated features
         # each downblock reduces spatial resolution and increases the number
         # of filters
-        x = DownBlock(width, block_depth)([x, skips])
+        x = DownBlock(width, block_depth, attention_in_up_down_sample)([x, skips])
 
     for _ in range(block_depth):
         # This is the bottleneck
@@ -240,7 +238,7 @@ def get_network(image_size, widths, block_depth):
     for width in reversed(widths[:-1]):
         # Each block upsamples the features and reduces the number 
         # of filters
-        x = UpBlock(width, block_depth)([x, skips])
+        x = UpBlock(width, block_depth, attention_in_up_down_sample)([x, skips])
 
     # Final convolution, 1x1 convolution with 3 channels (RGB) is applied to the output
     x = layers.Conv2D(3, kernel_size=1, kernel_initializer="zeros")(x)

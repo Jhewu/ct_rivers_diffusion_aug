@@ -4,28 +4,33 @@ OUR DIFFUSION MODEL.
 """
 
 # Import necessary libraries
-import matplotlib.pyplot as plt 
 import tensorflow as tf
 import keras
 from keras import layers
 from keras import ops
 import numpy as np
-import cv2 as cv
 
 # Import from local scripts
 from u_net_backbone import get_network
-from parameters import (max_signal_rate, min_signal_rate, 
-                      image_size, batch_size, ema)
 
 @keras.saving.register_keras_serializable()
 class DiffusionModel(keras.Model): 
-    def __init__(self, image_size, widths, block_depth, eta):
+    def __init__(self, image_size, widths, block_depth, eta, 
+                 max_signal_rate, min_signal_rate, batch_size, 
+                 ema, embedding_dims, attention_in_up_down_sample, attention_in_bottleneck):
         super().__init__()
 
         self.normalizer = layers.Normalization()                    # for pixel normalization
-        self.network = get_network(image_size, widths, block_depth) # obtaining the U-NET
+        self.network = get_network(image_size, widths, block_depth, 
+                                   embedding_dims, attention_in_up_down_sample, 
+                                   attention_in_bottleneck) # obtaining the U-NET    
+        self.image_size = image_size
         self.ema_network = keras.models.clone_model(self.network)   # EMA version of the network
-        self.eta = eta # the amount of stochastic noise added back
+        self.eta = eta                                              # the amount of stochastic noise added back
+        self.max_signal_rate = max_signal_rate
+        self.min_signal_rate = min_signal_rate
+        self.batch_size = batch_size
+        self.ema = ema
 
     def compile(self, **kwargs):
         """
@@ -61,8 +66,8 @@ class DiffusionModel(keras.Model):
         https://keras.io/examples/generative/ddim/#hyperparameters 
         """        
         # Convert diffusion times to angles
-        start_angle = ops.cast(ops.arccos(max_signal_rate), "float32")
-        end_angle = ops.cast(ops.arccos(min_signal_rate), "float32")
+        start_angle = ops.cast(ops.arccos(self.max_signal_rate), "float32")
+        end_angle = ops.cast(ops.arccos(self.min_signal_rate), "float32")
 
         diffusion_angles = start_angle + diffusion_times * (end_angle - start_angle)
 
@@ -216,7 +221,7 @@ class DiffusionModel(keras.Model):
         single = True, when inference
         """
         initial_noise = keras.random.normal(
-            shape=(num_images, image_size[0], image_size[1], 3)
+            shape=(num_images, self.image_size[0], self.image_size[1], 3)
         )
         if single == True:
             generated_images = self.reverse_diffusion_single(initial_noise, diffusion_steps)
@@ -232,11 +237,11 @@ class DiffusionModel(keras.Model):
         """
         # Normalize images to have standard deviation of 1, like the noises
         images = self.normalizer(images, training=True) 
-        noises = keras.random.normal(shape=(batch_size, image_size[0], image_size[1], 3))
+        noises = keras.random.normal(shape=(self.batch_size, self.image_size[0], self.image_size[1], 3))
 
         # Sample uniform random diffusion times
         diffusion_times = keras.random.uniform(
-            shape=(batch_size, 1, 1, 1), minval=0.0, maxval=1.0
+            shape=(self.batch_size, 1, 1, 1), minval=0.0, maxval=1.0
         )
         
         # Calculate noise rates and signal rates based on diffusion times.
@@ -277,7 +282,7 @@ class DiffusionModel(keras.Model):
 
         # Track the exponential moving averages of weights
         for weight, ema_weight in zip(self.network.weights, self.ema_network.weights):
-            ema_weight.assign(ema * ema_weight + (1 - ema) * weight)
+            ema_weight.assign(self.ema * ema_weight + (1 - self.ema) * weight)
                 # Update exponential moving averages of network weights.
 
         return {m.name: m.result() for m in self.metrics}
@@ -288,11 +293,11 @@ class DiffusionModel(keras.Model):
         """
         # Normalize images to have standard deviation of 1, like the noises
         images = self.normalizer(images, training=False)
-        noises = keras.random.normal(shape=(batch_size, image_size[0], image_size[1], 3))
+        noises = keras.random.normal(shape=(self.batch_size, self.image_size[0], self.image_size[1], 3))
 
         # Sample uniform random diffusion times
         diffusion_times = keras.random.uniform(
-            shape=(batch_size, 1, 1, 1), minval=0.0, maxval=1.0
+            shape=(self.batch_size, 1, 1, 1), minval=0.0, maxval=1.0
         )
         noise_rates, signal_rates = self.diffusion_schedule(diffusion_times)
         noisy_images = signal_rates * images + noise_rates * noises
@@ -332,7 +337,7 @@ class DiffusionModel(keras.Model):
 
         # Initialize noise
         initial_noise = keras.random.normal(
-            shape=(image_size[0], image_size[1], 3)
+            shape=(self.image_size[0], self.image_size[1], 3)
         )
 
         """MODIFY LATER TO PERFORM THIS IN BATCHES"""

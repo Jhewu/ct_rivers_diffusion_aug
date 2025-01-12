@@ -7,17 +7,10 @@ helper functions used in run_diffusion.
 import os
 import matplotlib.pyplot as plt 
 import tensorflow as tf
-import keras
-import cv2 as cv
-import logging
-from datetime import datetime
-
-from parameters import used_mix_precision
 
 """ HELPER FUNCTIONS """
 def load_dataset(img_folder_name, validation_split, seed, 
-                 image_size, crop_to_aspect_ratio, 
-                 pad_to_aspect_ratio): 
+                 image_size): 
     """
     Loads the dataset for training
     """
@@ -32,8 +25,8 @@ def load_dataset(img_folder_name, validation_split, seed,
         image_size = (image_size[0], image_size[1]),  
         batch_size = None,
         shuffle = True,
-        crop_to_aspect_ratio = crop_to_aspect_ratio,
-        pad_to_aspect_ratio = pad_to_aspect_ratio,
+        crop_to_aspect_ratio = True,
+        pad_to_aspect_ratio = False,
     )
     val_ds = tf.keras.preprocessing.image_dataset_from_directory(
         img_dir, 
@@ -43,34 +36,25 @@ def load_dataset(img_folder_name, validation_split, seed,
         image_size = (image_size[0], image_size[1]), 
         batch_size = None,
         shuffle = True,
-        crop_to_aspect_ratio = crop_to_aspect_ratio,
-        pad_to_aspect_ratio = pad_to_aspect_ratio,
+        crop_to_aspect_ratio = True,
+        pad_to_aspect_ratio = False,
     )
 
     return train_ds, val_ds
 
-def convert_to_float16(image): 
-    """
-    Prepare the dataset for mixed precision training
-    """
-    return tf.cast(image, tf.float16)
-
-def prepare_dataset(train_ds, val_ds, dataset_repetitions,
-                    batch_size): 
+def prepare_dataset(train_ds, val_ds, batch_size): 
     """
     Prepares the dataset for training, used in combination with load_dataset
     """
     train_ds = (train_ds
         .map(normalize_image, num_parallel_calls=tf.data.AUTOTUNE) # each dataset has the structure
         .cache()                                                   # (image, labels) when inputting to 
-        .repeat(dataset_repetitions)                               # map
         .shuffle(10 * batch_size)
         .batch(batch_size, drop_remainder=True)
         .prefetch(buffer_size=tf.data.AUTOTUNE))
     val_ds = (val_ds
         .map(normalize_image, num_parallel_calls=tf.data.AUTOTUNE)
         .cache()
-        .repeat(dataset_repetitions)
         .shuffle(10 * batch_size)
         .batch(batch_size, drop_remainder=True)
         .prefetch(buffer_size=tf.data.AUTOTUNE)) # THIS IS A PREFETCH DATASET
