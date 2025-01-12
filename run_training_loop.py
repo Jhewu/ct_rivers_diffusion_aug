@@ -5,7 +5,7 @@ import argparse
 import subprocess
 import time
 
-def ParseArgs(): 
+def ParseArgs(des): 
     """
     This function parses all of the arguments
     """
@@ -146,6 +146,11 @@ if __name__ == "__main__":
         available for argparse, if you wish to modify them, modify the 
         config.py directly. 
 
+    NOTE: If you're using run_training_loop.py, the config.py file copied
+    to the output dir will not reflect the parameters you used (because
+    it does not update from argparse), but rather you should focus on the 
+    config_parameters.txt file
+
     ------------------------------------------
     - How to Use -
 
@@ -162,7 +167,7 @@ if __name__ == "__main__":
     """    
  
     # Parse all of the arguments
-    args = ParseArgs()
+    args = ParseArgs(des)
 
     # Run the diffusion model subprocess loop
     RunDiffusion(args) 

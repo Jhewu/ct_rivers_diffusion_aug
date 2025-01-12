@@ -22,40 +22,11 @@ from keras import mixed_precision
 import cv2 as cv
 import datetime
 import shutil
-import argparse
 
 # Import from local script
 from diffusion_model import DiffusionModel
 from config import Config
 from utils import *
-
-class GenerateOnEpoch(keras.callbacks.Callback): 
-    """ 
-    This callback will generate an image after a
-    certain amount of epochs. 
-    """
-    def __init__(self, generate_on_epoch, generate_diffusion_steps, folder_path, **kwargs):
-        super().__init__(**kwargs)
-        self.generate_on_epoch = generate_on_epoch
-        self.generate_diffusion_steps = generate_diffusion_steps
-        self.folder_path = folder_path
-
-    def on_epoch_end(self, epoch, logs=None): 
-        if (epoch + 1) % self.generate_on_epoch == 0: 
-            # Generate only one image
-            generated_images = self.model.generate(1, self.generate_diffusion_steps, True)
-            # Get current time
-            current_time = datetime.datetime.now() 
-            formatted_time = current_time.strftime("%Y-%m-%d_%H:%M:%S")
-            # Create a new directory
-            generated_dir = os.path.join(self.folder_path, "plot_images")
-            if not os.path.exists(generated_dir): 
-                os.makedirs(generated_dir)
-            # Save the generated images
-            index = 1
-            for image in generated_images: 
-                tf.keras.preprocessing.image.save_img(f"{generated_dir}/{formatted_time}_generated_img_{index}.jpg", image) 
-                index = index + 1
 
 def PrepareData_LoadModel(config):
     # Load and prepare the dataset
@@ -73,47 +44,6 @@ def PrepareData_LoadModel(config):
     model.normalizer.adapt(train_dataset)
 
     return train_dataset, val_dataset, model
-
-def GetCallbacks(config): 
-    # Generates an image per amount of epoch
-    generate_image_callback = GenerateOnEpoch(config.generate_on_epoch, config.generate_diffusion_steps, config.out_dir)
-
-    # Last checkpoint callback
-    last_checkpoint_path = f"{config.out_dir}/last_diffusion_model.weights.h5"
-    last_checkpoint_callback = keras.callbacks.ModelCheckpoint(
-        filepath=last_checkpoint_path,
-        save_weights_only=True,
-        verbose=1,
-        save_best_only=False,)
-    
-    # Save the best performing models
-    checkpoint_path = f"{config.out_dir}/best_diffusion_model.weights.h5"
-    config.model_dir = config.out_dir
-    checkpoint_callback = keras.callbacks.ModelCheckpoint(
-        filepath=checkpoint_path,
-        save_weights_only=True,
-        monitor=config.checkpoint_monitor,
-        verbose=1,
-        mode="min",
-        save_best_only=True,)
-
-    # Early stopping
-    early_stop_callback = keras.callbacks.EarlyStopping(
-        monitor=config.early_stop_monitor, 
-        min_delta=config.early_stop_min_delta,
-        patience=config.early_stop_patience,
-        verbose=1,
-        mode="min",
-        restore_best_weights=True,
-        start_from_epoch=config.early_stop_start_epoch,
-    )
-
-    # Log losses
-    current_time = datetime.datetime.now() 
-    formatted_time = current_time.strftime("%Y-%m-%d_%H:%M:%S")
-    csv_callback = keras.callbacks.CSVLogger(filename=f"{config.out_dir}/csv_log_{formatted_time}.csv", separator=",", append=True)
-
-    return generate_image_callback, last_checkpoint_callback, checkpoint_callback, early_stop_callback, csv_callback
 
 def TrainDiffusionModel(config, model, train_dataset, val_dataset, 
                         generate_image_callback, last_checkpoint_callback, 
@@ -208,7 +138,6 @@ def ContextualInpainting(model, config):
     IN THE FUTURE MODIFY TO TAKE ENTIRE DIRECTORIES. DO NOT USE AS OF 
     THE MOMENT
     """
-
     # Load the model's weights
     model.load_weights(f"{config.model_dir}/best_diffusion_model.weights.h5")
 
@@ -229,14 +158,14 @@ def ContextualInpainting(model, config):
 
     plt.imshow(inpainted_images[0])
     plt.show()
-    """MODIFY TO HANDLE LONG LISTS OF IMAGES AND MASKS"""
 
+    """MODIFY TO HANDLE LONG LISTS OF IMAGES AND MASKS"""
     # Save the inpainted image in model directory
     inpainted_dir = os.path.join(config.out_dir, "inpainted_images")
     if not os.path.exists(inpainted_dir): 
         os.makedirs(inpainted_dir)
-
     """MODIFY THE NAMING CONVENTION TO FIT INTO THE PIPELINE""" 
+
     timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     for image in inpainted_images: 
         tf.keras.preprocessing.image.save_img(f"{inpainted_dir}/{timestamp}_inpainted_img_{image_name}.jpg", image) 
@@ -282,114 +211,71 @@ if __name__ == "__main__":
     and expose the classification model to more "diversity."
 
     ------------------------------------------
-    - Training the Diffusion Model -
+    - Changing Parameters for the Diffusion Model -
 
-    There are two ways to train the model. One way is to train 
-    a single model which you can do by 'python3 run_diffusion.py'
-    The other way is to train multiple models in a training loop, 
-    which you can do by 'python3 run_training_loop.py'
+    There are two ways to change parameters: 
 
-    There is also two ways to modify the parameters for the model. 
-    The easiest way is to modify the config.py file which contains all the 
-    script's parameters. The other way is to use argparse, when running either
-    'run_diffusion.py' or 'run_training_loop.py' , however not all parameters 
-    are available for argparse. 
+    (1) Directly modify the config.py
+    (2) Use argparse to pass arguments. NOTE: not all parameters are
+        available for argparse, if you wish to modify them, modify the 
+        config.py directly. 
 
     ------------------------------------------
     - How to Use -
+
+    Please refer to the README.md file for the full list of argparse argument. 
+    If you're working with GUI, I highly recommend changing the parameters using
+    the config.py by manually modifying the values.
+
+    To train the model (using config.py): 
+    (1) Set runtime = "training" 
+    (2) Set in_dir to the dataset directory + the label, e.g. diffusion_data/L2
+    (3) Modify all other important training parameters, such as
+        num_epochs, batch_size or learning_rate
+    (3) (in command prompt) 'python3 run_diffusion.py'
+    
+    To train the model (using argparse)
+    (1) (default parameters) 'python3 run_diffusion.py"
+    (2) (different parameters) 'python3 run_diffusion.py --in_dir diffusion_data/L2
+        --learning_rate 1e-5 --batch_size 8
+
+    ---
+
+    To perform inference (using config.py): 
+    (1) You need to have a trained a model
+    (2) Modify model_dir to the folder where the weight is located e.g. 
+        "results/L2_2025-01-12_14:55:51"
+    (3) Modify all other important parameters such as images_to_generate
+        and generate_diffusion_steps 
+
+    To perform inference (using argparse): 
+    (1) (default parameters) Need to provide the model_dir: 
+        'python3 run_diffusion --runtime inference
+        --model_dir results/L2_2025-01-12_14:55:51'
+    (2) (changing parameters): 
+        'python3 run_diffusion --runtime inference
+        --in_dir diffusion_data/L2
+        --model_dir results/L2_2025-01-12_14:55:51'
+
+    NOTE: to perform inference you still need to provide the correct
+    in_dir, because the model need to adapt the dataset for the normalizer
+    to work correctly. The architecture also needs to be the same otherwise
+    the weights cannot be loaded. Since the image generation follows a convention, 
+    if you generate 30, and generate 30 again, the files will be replaced by the 
+    latest. The differentiator is today's date. 
 
     Please refer to the README.md file for more information on how to use
     or access help, by 'python3 run_diffusion.py -h'
 
     ------------------------------------------
     """
+
+    # Parse the arguments
+    args = ParseArgs(des) 
+
+    # Assign arguments
+    AssignArgs(config, args)
     
-    """-----ARGPARSE BELOW------------------------------------------------------------------------------------"""
-    parser = argparse.ArgumentParser(description=des.lstrip(" "),formatter_class=argparse.RawTextHelpFormatter)
-
-    # General parameters
-    parser.add_argument('--in_dir', type=str, help="The dir that contains the label folder with river images, structured similarly like this: 'L1/1/image.JPG'")
-    parser.add_argument('--out_dir', type=str, help="The dir to save model weight, callbacks and results")
-
-    # Training parameters
-    parser.add_argument('--runtime', type=str, choices=["training", "inference", "inpainting"], help="Run mode: training or inference or inpainting")
-    parser.add_argument('--load_and_train', type=bool, help="Whether to load a pre-trained model to train")
-    parser.add_argument('--eta', type=float, help="Eta parameter for noise scheduling")
-    parser.add_argument('--image_size', type=tuple, help="Size of the input images (height, width)")
-
-    # Optimization (Training) parameters
-    parser.add_argument('--num_epochs', type=int, help="Number of epochs for training")
-    parser.add_argument('--batch_size', type=int, help="Batch size for training")
-    parser.add_argument('--learning_rate', type=float, help="Learning rate")
-    parser.add_argument('--use_mix_precision', type=bool, help="Whether to use mixed precision training")
-    parser.add_argument('--gpu_index', type=int, help="Index of the GPU to use")
-
-    # U-Net architecture parameters
-    parser.add_argument('--embedding_dims', type=int, help="Dimensions for embeddings")
-    parser.add_argument('--widths', type=int, nargs='+', help="Widths for each convolutional layer")
-    parser.add_argument('--block_depth', type=int, help="Depth of the U-Net blocks")
-    parser.add_argument('--attention_in_bottleneck', type=bool, help="Whether to use attention in bottleneck")
-    parser.add_argument('--attention_in_up_down_sample', type=bool, help="Whether to use attention in up/down sampling layers")
-
-    # Inference parameters
-    parser.add_argument('--model_dir', type=str, help="The dir where the model's weight is located in")
-    parser.add_argument('--images_to_generate', type=int, help="Number of images to generate during inference")
-    parser.add_argument('--generate_diffusion_steps', type=int, help="Number of diffusion steps for generation")
-
-    # Parse arguments
-    args = parser.parse_args()
-    """-----ARGPARSE ABOVE------------------------------------------------------------------------------------"""
-
-    """-----ASSIGN ARGS BELOW---------------------------------------------------------------------------------"""
-    # General parameters
-    if args.in_dir is not None:
-        config.in_dir = args.in_dir
-    if args.out_dir is not None:
-        config.out_dir = args.out_dir
-
-    # Training parameters
-    if args.runtime is not None:
-        config.runtime = args.runtime
-    if args.load_and_train is not None:
-        config.load_and_train = args.load_and_train
-    if args.eta is not None:
-        config.eta = args.eta
-    if args.image_size is not None:
-        config.image_size = args.image_size
-
-    # Optimization (Training)
-    if args.num_epochs is not None:
-        config.num_epochs = args.num_epochs
-    if args.batch_size is not None:
-        config.batch_size = args.batch_size
-    if args.learning_rate is not None:
-        config.learning_rate = args.learning_rate
-    if args.use_mix_precision is not None:
-        config.use_mix_precision = args.use_mix_precision
-    if args.gpu_index is not None:
-        config.gpu_index = args.gpu_index
-
-    # U-Net architecture
-    if args.embedding_dims is not None:
-        config.embedding_dims = args.embedding_dims
-    if args.widths is not None:
-        config.widths = args.widths
-    if args.block_depth is not None:
-        config.block_depth = args.block_depth
-    if args.attention_in_bottleneck is not None:
-        config.attention_in_bottleneck = args.attention_in_bottleneck
-    if args.attention_in_up_down_sample is not None:
-        config.attention_in_up_down_sample = args.attention_in_up_down_sample
-
-    # Inference parameters
-    if args.model_dir is not None:
-        config.model_dir = args.model_dir
-    if args.images_to_generate is not None:
-        config.images_to_generate = args.images_to_generate
-    if args.generate_diffusion_steps is not None:
-        config.generate_diffusion_steps = args.generate_diffusion_steps
-    """-----ASSIGN ARGS ABOVE---------------------------------------------------------------------------------"""
-
     if config.runtime == "training":
         # Get current time to create output directory
         current_time = datetime.datetime.now() 
@@ -416,6 +302,11 @@ if __name__ == "__main__":
             mixed_precision.set_global_policy("float32")
             print("\nDefault, using float32\n")
         InferenceDiffusionModel(model)        
+
+        # Log the parameters of config and save as a pickle file
+        log_config_parameters(config, f"{config.model_dir}/config_parameters.txt")
+        save_config_to_pickle(config, f"{config.model_dir}/config_file.pkl")
+
         print(f"\nFinish training for {config.num_epochs}. Check {config.out_dir} for the model")
                             
     elif config.runtime == "inference":
