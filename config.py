@@ -25,7 +25,7 @@ class Config:
         
         #-TRAINING------------------------------------------------
         # Runtime = ["training", "inference", "inpainting"]
-        self.runtime = "inference"
+        self.runtime = "training"
         self.load_and_train = False
 
         # The amount of stochastic noise used during reverse diffusion
