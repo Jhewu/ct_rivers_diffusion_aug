@@ -67,7 +67,11 @@ def TrainDiffusionModel(config, model, train_dataset, val_dataset,
 
     # Load the model if desired
     if config.load_and_train: 
+        print(f"\n{config.load_and_train}\n")
+        print(f"{config.model_dir}")
+        print(f"\n{config.model_dir}/best_diffusion_model.weights.h5\n")
         model.load_weights(f"{config.model_dir}/best_diffusion_model.weights.h5")
+        config.out_dir = config.model_dir
 
     # Create output directory if it does not exist
     CreateDir(config.out_dir)
@@ -101,7 +105,21 @@ def InferenceDiffusionModel(model):
     generated_images = model.generate(config.images_to_generate, config.generate_diffusion_steps)
 
     # Create directory in model's folder and save the images
-    generated_dir = os.path.join(config.model_dir, "generated_images")
+    """NEED TO CHECK BACK IF THIS WILL WORK CORRECT AFTER MODIFYING MODEL_DIR"""
+
+    print(f"\nThis is subprocess {config.subprocess}\n")
+    print(f"\nThis is out_dir {config.out_dir}\n")
+    print(f"\nThis is model_dir {config.model_dir}\n")
+
+    if config.subprocess: 
+        # When running diffusion_augmentation.py
+        # we want to save the images to the specified out_dir
+        # not in the model's folder
+        generated_dir = config.out_dir
+
+    else:
+        generated_dir = os.path.join(config.model_dir, "generated_images")
+
     if not os.path.exists(generated_dir): 
         os.makedirs(generated_dir)
 
@@ -274,8 +292,10 @@ if __name__ == "__main__":
     args = ParseArgs(des) 
 
     # Assign arguments
-    AssignArgs(config, args)
-    
+    config = AssignArgs(config, args)
+
+    print(f"\nThis is another subprocess check {config.subprocess}\n")
+
     if config.runtime == "training":
         # Get current time to create output directory
         current_time = datetime.datetime.now() 

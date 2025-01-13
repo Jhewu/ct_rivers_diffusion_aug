@@ -10,3 +10,5 @@ archive_parameters/
 token.txt
 results/
 diffusion_data
+balanced_data/
+toy_dataset/

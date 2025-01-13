@@ -60,12 +60,15 @@ class Config:
         self.generate_on_epoch = float('inf')
 
         # Inference parameters
-        self.model_dir = "results/L2_2025-01-12_14:55:51"   # ---> This parameter is also used for training, when load_and_train is True 
+        self.model_dir = "results/L2_2025-01-12_17:18:20"   # ---> This parameter is also used for training, when load_and_train is True 
         self.images_to_generate = 5
-        self.generate_diffusion_steps = 50
+        self.generate_diffusion_steps = 30
 
         # Inpainting parameters
         self.inpainting_dir = "inpainting_data"
+
+        # Subprocess checker
+        self.subprocess = False     # --> DO NOT CHANGE
 
     def ceil(self, value): 
         return int(value) + (value % 1 > 0)

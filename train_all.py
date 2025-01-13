@@ -171,3 +171,5 @@ if __name__ == "__main__":
 
     # Run the diffusion model subprocess loop
     RunDiffusion(args) 
+
+    print("\nFinish training, please check the results directory\n")

@@ -1,5 +1,5 @@
 """
-This utilities script stores all of the 
+This utility script stores all of the 
 helper functions used in run_diffusion. 
 """
 
@@ -11,11 +11,13 @@ import argparse
 import datetime
 import keras
 import pickle
+import cv2 as cv
+from math import ceil, floor
+import shutil
+
 
 """
-
 PARSING ARGUMENTS----------------------------------------------------------------------------------------------------------------------------------------------
-
 """
 
 def ParseArgs(des): 
@@ -53,25 +55,94 @@ def ParseArgs(des):
     parser.add_argument('--images_to_generate', type=int, help="Number of images to generate during inference")
     parser.add_argument('--generate_diffusion_steps', type=int, help="Number of diffusion steps for generation")
 
+    # Running from subprocess
+    # This is to check if we are running from a subprocess call
+    # If we are instead of saving the images on the model_dir, 
+    # We save it to the respective out_dir provided by the subprocess call
+    parser.add_argument('--subprocess', action='store_true', help="Boolean flag to indicate running in subprocess")
+
     # Parse arguments
     return parser.parse_args()
 
 def AssignArgs(config, args): 
     """
     This function runs the diffusion loop. It creates the parse arguments by extending 
-    the list, and then pass it to run_diffusion.py
+    the list, and then pass it to run_diffusion.py. The function also contains a checker
+    to load the config_file.pkl when necessary (during load and train and during inference)
     """
-    # General parameters
-    if args.in_dir is not None:
-        config.in_dir = args.in_dir
-    if args.out_dir is not None:
-        config.out_dir = args.out_dir
 
-    # Training parameters
+    # Parameters to keep, if loading config.plk
+    """
+    COMMENT FOR FUTURE JUN: This methodology is only useful for inference, 
+    and for diffusion augmentation. Because config.pkl will overwrite all of 
+    the new variables you set, this is not recommended. Therefore, the best 
+    way will be to configure it manually and not load config.pkl
+    """
     if args.runtime is not None:
         config.runtime = args.runtime
+    else:
+        previous_runtime = config.runtime
     if args.load_and_train is not None:
         config.load_and_train = args.load_and_train
+    else: 
+        previous_load_and_train = config.load_and_train
+    if args.model_dir is not None:
+        config.model_dir = args.model_dir
+    else: 
+        previous_model_dir = config.model_dir
+    if args.images_to_generate is not None:
+        config.images_to_generate = args.images_to_generate
+    else: 
+        previous_images_to_generate = config.images_to_generate
+    if args.generate_diffusion_steps is not None:
+        config.generate_diffusion_steps = args.generate_diffusion_steps
+    else: 
+        previous_generate_diffusion_steps = config.generate_diffusion_steps
+    if args.in_dir is not None:
+        config.in_dir = args.in_dir
+    else: 
+        previous_in_dir = config.in_dir
+    if args.out_dir is not None:
+        config.out_dir = args.out_dir
+    else: 
+        previous_out_dir = config.out_dir
+
+    """MODIFY THIS TO BE MORE MODULAR"""
+    if config.load_and_train or config.runtime == "inference": 
+        
+        # Load config_file.pkl here so we can easily restore previous parameters
+        config = load_config_from_pickle(f"{config.model_dir}/config_file.pkl")
+
+        if args.runtime == None: 
+            config.runtime = previous_runtime
+        else: 
+            config.runtime = args.runtime
+        if args.load_and_train == None: 
+            config.load_and_train = previous_load_and_train
+        else: 
+            config.load_and_train = args.load_and_train
+        if args.model_dir == None: 
+            config.model_dir = previous_model_dir
+        else: 
+            config.model_dir = args.model_dir
+        if args.images_to_generate == None: 
+            config.images_to_generate = previous_images_to_generate
+        else: 
+            config.images_to_generate = args.images_to_generate
+        if args.generate_diffusion_steps == None: 
+            config.generate_diffusion_steps = previous_generate_diffusion_steps
+        else: 
+            config.generate_diffusion_steps = args.generate_diffusion_steps
+        if args.in_dir == None: 
+            config.in_dir = previous_in_dir
+        else: 
+            config.in_dir = args.in_dir
+        if args.out_dir == None: 
+            config.out_dir = previous_out_dir
+        else: 
+            config.out_dir = args.out_dir
+
+    # General parameters
     if args.eta is not None:
         config.eta = args.eta
     if args.image_size is not None:
@@ -101,19 +172,19 @@ def AssignArgs(config, args):
     if args.attention_in_up_down_sample is not None:
         config.attention_in_up_down_sample = args.attention_in_up_down_sample
 
-    # Inference parameters
-    if args.model_dir is not None:
-        config.model_dir = args.model_dir
-    if args.images_to_generate is not None:
-        config.images_to_generate = args.images_to_generate
-    if args.generate_diffusion_steps is not None:
-        config.generate_diffusion_steps = args.generate_diffusion_steps
+    # Running from subprocess
+    if args.subprocess:
+        config.subprocess = True
+    else:
+        config.subprocess = False
 
+    print(f"\nThis is argp subprocess {args.subprocess}")
+    print(f"\nThis is subprocess prior {config.subprocess}")
+
+    return config
 
 """
-
 KERAS CALLBACKS----------------------------------------------------------------------------------------------------------------------------------------------
-
 """
 
 class GenerateOnEpoch(keras.callbacks.Callback): 
@@ -161,7 +232,12 @@ def GetCallbacks(config):
     
     # Save the best performing models
     checkpoint_path = f"{config.out_dir}/best_diffusion_model.weights.h5"
-    config.model_dir = config.out_dir
+
+    # If it's not load and train, we set model_dir to out_dir (for Inference later)
+    # However, if we are load and train, then we do not set the out_dir to be the same
+    if config.load_and_train == False: 
+        config.model_dir = config.out_dir
+
     checkpoint_callback = keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_path,
         save_weights_only=True,
@@ -184,15 +260,13 @@ def GetCallbacks(config):
     # Log losses
     current_time = datetime.datetime.now() 
     formatted_time = current_time.strftime("%Y-%m-%d_%H:%M:%S")
-    csv_callback = keras.callbacks.CSVLogger(filename=f"{config.out_dir}/csv_log_{formatted_time}.csv", separator=",", append=True)
+    csv_callback = keras.callbacks.CSVLogger(filename=f"{config.model_dir}/csv_log_{formatted_time}.csv", separator=",", append=True)
 
     return generate_image_callback, last_checkpoint_callback, checkpoint_callback, early_stop_callback, csv_callback
 
 
 """
-
-HELPER FUNCTIONS----------------------------------------------------------------------------------------------------------------------------------------------
-
+RUN_DIFFUSION HELPER FUNCTIONS------------------------------------------------------------------------------------------------------------------------------------
 """
 
 def log_config_parameters(config, log_file_path):
@@ -229,6 +303,17 @@ def save_config_to_pickle(config, pickle_file_path):
         pickle.dump(config, pickle_file)
     
     print(f"Config saved to pickle file: {pickle_file_path}")
+
+def load_config_from_pickle(pickle_file_path):
+    """
+    Loads the config object from a pickle file.
+    """
+    # Open the pickle file in binary read mode
+    with open(pickle_file_path, 'rb') as pickle_file:
+        # Deserialize the config object from the file
+        config = pickle.load(pickle_file)
+    
+    return config
 
 def load_dataset(img_folder_name, validation_split, seed, 
                  image_size): 
@@ -330,3 +415,75 @@ def CreateDir(folder_name):
    """
    if not os.path.exists(folder_name):
        os.makedirs(folder_name)   
+
+"""
+SITE_ID_BALANCER HELPER FUNCTIONS--------------------------------------------------------------------------------------------------------------------------------------
+"""
+
+def Data_augmentation(img, THETA, FACT, flipped):
+   """
+   Main data augmentation function 
+   """
+   img = cv.imread(img)
+   if flipped == False: # if regular rotation
+       pad = Pad_img(img)   
+       rot = Rotate_img(pad, THETA)
+       up = Upsample_img(rot, FACT)
+       return Center_crop(up, img)
+   else:                # if horizontal flip rotation
+       flip = Flip_img(img)
+       pad = Pad_img(flip)   
+       rot = Rotate_img(pad, THETA)
+       up = Upsample_img(rot, FACT)
+       return Center_crop(up, img)
+   
+def Pad_img(img):
+   row, col, colors = img.shape
+   padding_lr = floor(col/2) # left and right
+   padding_tb = floor(row/2) # top and bottom
+   return cv.copyMakeBorder(img, padding_tb, padding_tb,
+                       padding_lr, padding_lr, borderType = cv.BORDER_CONSTANT, value = (0, 0,0))
+def Flip_img(img):
+   return cv.flip(img, 1)
+
+def Get_center(coord):
+   return ceil((coord-1)/2.0)
+
+def Rotate_img(img, THETA):
+   row, col, colors = img.shape
+   centerx = Get_center(col)
+   centery = Get_center(row)
+   matrix = cv.getRotationMatrix2D((centerx, centery), THETA, 1)
+   return cv.warpAffine(img, matrix, (col,row))
+
+def Upsample_img(img, FACT):
+   # for each 5 degrees, increase fact by 0.3x
+   return cv.resize(img, None, fx=FACT, fy=FACT, interpolation = cv.INTER_CUBIC)
+
+def Center_crop(img, og_img):
+   row, col, color = img.shape
+   og_row, og_col, og_color = og_img.shape
+   centerx = Get_center(col)
+   centery = Get_center(row) # --> padded, rotated and upscaled image center
+   ogx = Get_center(og_col)
+   ogy = Get_center(og_row) # ---> image center of original image
+   return img[centery-ogy:centery+ogy, centerx-ogx:centerx+ogx]
+
+def CreateDir(folder_name):
+   if not os.path.exists(folder_name):
+       os.makedirs(folder_name)   
+
+def SortDict(dict):
+   # Sort the dictionary by its value in ascending order
+   sorted_items = sorted(dict.items(), key=lambda item: item[1])
+   return sorted_items
+
+def Get_center(coord):
+   return ceil((coord-1)/2.0)
+
+def Copy_dir(src, dst): 
+   try: 
+      shutil.copytree(src, dst)
+   except Exception as e:
+      print(f"Error copying {src} to {dst}: {e}")
+      print("This does not mean the program is not working correctly, it just means that the directory already exists\n")
