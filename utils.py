@@ -178,9 +178,6 @@ def AssignArgs(config, args):
     else:
         config.subprocess = False
 
-    print(f"\nThis is argp subprocess {args.subprocess}")
-    print(f"\nThis is subprocess prior {config.subprocess}")
-
     return config
 
 """
@@ -222,6 +219,14 @@ def GetCallbacks(config):
     # Generates an image per amount of epoch
     generate_image_callback = GenerateOnEpoch(config.generate_on_epoch, config.generate_diffusion_steps, config.out_dir)
 
+    # If it's not load and train, we set model_dir to out_dir (for Inference later)
+    # However, if we are load and train, then we do not set the out_dir to be the same
+    if config.load_and_train: 
+        config.out_dir = config.model_dir
+    else:
+        config.model_dir = config.out_dir
+
+
     # Last checkpoint callback
     last_checkpoint_path = f"{config.out_dir}/last_diffusion_model.weights.h5"
     last_checkpoint_callback = keras.callbacks.ModelCheckpoint(
@@ -232,11 +237,6 @@ def GetCallbacks(config):
     
     # Save the best performing models
     checkpoint_path = f"{config.out_dir}/best_diffusion_model.weights.h5"
-
-    # If it's not load and train, we set model_dir to out_dir (for Inference later)
-    # However, if we are load and train, then we do not set the out_dir to be the same
-    if config.load_and_train == False: 
-        config.model_dir = config.out_dir
 
     checkpoint_callback = keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_path,

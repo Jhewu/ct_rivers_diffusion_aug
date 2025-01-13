@@ -105,12 +105,6 @@ def InferenceDiffusionModel(model):
     generated_images = model.generate(config.images_to_generate, config.generate_diffusion_steps)
 
     # Create directory in model's folder and save the images
-    """NEED TO CHECK BACK IF THIS WILL WORK CORRECT AFTER MODIFYING MODEL_DIR"""
-
-    print(f"\nThis is subprocess {config.subprocess}\n")
-    print(f"\nThis is out_dir {config.out_dir}\n")
-    print(f"\nThis is model_dir {config.model_dir}\n")
-
     if config.subprocess: 
         # When running diffusion_augmentation.py
         # we want to save the images to the specified out_dir
@@ -293,8 +287,6 @@ if __name__ == "__main__":
 
     # Assign arguments
     config = AssignArgs(config, args)
-
-    print(f"\nThis is another subprocess check {config.subprocess}\n")
 
     if config.runtime == "training":
         # Get current time to create output directory

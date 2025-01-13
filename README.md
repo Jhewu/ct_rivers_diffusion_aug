@@ -1,4 +1,4 @@
-# CT Rivers Diffusion Model
+# CT DEEP Rivers Diffusion Model
 
 ## Overview
 
@@ -59,15 +59,15 @@ The model is a Denoising Diffusion Implicit Diffusion Model (with a 50% stochast
 - `--num_epochs` (int): Number of training epochs.
 - `--batch_size` (int): Batch size for training.
 - `--learning_rate` (float): Learning rate for optimization.
-- `--use_mix_precision` (bool): Whether to use mixed precision training.
+- `--use_mix_precision` (bool): A flag whether to use mixed precision training.
 - `--gpu_index` (int): Index of the GPU to use.
 
 #### U-Net Architecture Parameters
 - `--embedding_dims` (int): Number of embedding dimensions.
 - `--widths` (list of int): Widths for each convolutional layer.
 - `--block_depth` (int): Depth of the U-Net blocks.
-- `--attention_in_bottleneck` (bool): Use attention mechanism in the bottleneck.
-- `--attention_in_up_down_sample` (bool): Use attention in up/down sampling layers.
+- `--attention_in_bottleneck` (bool): A flag to use attention mechanism in the bottleneck.
+- `--attention_in_up_down_sample` (bool): A flag to use attention in up/down sampling layers.
 
 #### Inference Parameters
 - `--model_dir` (str): Directory where the model weights are located.
@@ -163,6 +163,6 @@ This script balances and performs the necessary image augmentations (e.g. revers
 #### Example
 
 ```bash
-python3 diffusion_augmentation.py --in_dir /path/to/original_dataset --weight_paths /results/L1_date results/L2_date results/L3_date
+python3 diffusion_augmentation.py --in_dir path/to/original_dataset --weight_paths results/L1_date results/L2_date results/L3_date
 ```
 ![Generated Sample #3](./sample_images/2025-01-08_23_37_11_generated_img_5.jpg)
