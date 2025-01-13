@@ -32,7 +32,7 @@ def ParseArgs(des):
 
     # Training parameters
     parser.add_argument('--runtime', type=str, choices=["training", "inference", "inpainting"], help="Run mode: training or inference or inpainting")
-    parser.add_argument('--load_and_train', type=bool, help="Whether to load a pre-trained model to train")
+    parser.add_argument('--load_and_train', action='store_true', help="Whether to load a pre-trained model to train")
     parser.add_argument('--eta', type=float, help="Eta parameter for noise scheduling")
     parser.add_argument('--image_size', type=tuple, help="Size of the input images (height, width)")
 
@@ -40,15 +40,14 @@ def ParseArgs(des):
     parser.add_argument('--num_epochs', type=int, help="Number of epochs for training")
     parser.add_argument('--batch_size', type=int, help="Batch size for training")
     parser.add_argument('--learning_rate', type=float, help="Learning rate")
-    parser.add_argument('--use_mix_precision', type=bool, help="Whether to use mixed precision training")
-    parser.add_argument('--gpu_index', type=int, help="Index of the GPU to use")
+    parser.add_argument('--use_mix_precision', action='store_true', help="Whether to use mixed precision training")    parser.add_argument('--gpu_index', type=int, help="Index of the GPU to use")
 
     # U-Net architecture parameters
     parser.add_argument('--embedding_dims', type=int, help="Dimensions for embeddings")
     parser.add_argument('--widths', type=int, nargs='+', help="Widths for each convolutional layer")
     parser.add_argument('--block_depth', type=int, help="Depth of the U-Net blocks")
-    parser.add_argument('--attention_in_bottleneck', type=bool, help="Whether to use attention in bottleneck")
-    parser.add_argument('--attention_in_up_down_sample', type=bool, help="Whether to use attention in up/down sampling layers")
+    parser.add_argument('--attention_in_bottleneck', action='store_true', help="Whether to use attention in bottleneck")
+    parser.add_argument('--attention_in_up_down_sample', action='store_true', help="Whether to use attention in up/down sampling layers")
 
     # Inference parameters
     parser.add_argument('--model_dir', type=str, help="The dir where the model's weight is located in")

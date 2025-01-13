@@ -3,7 +3,6 @@ THIS PYTHON FILE ONLY CONTAINS THE PARAMETERS
 FOR THE DIFFUSION MODELS. THIS IS DONE TO AVOID
 CIRCULAR IMPORT. 
 """
-
 class Config: 
     def __init__(self): 
         """
