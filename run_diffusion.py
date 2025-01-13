@@ -67,9 +67,6 @@ def TrainDiffusionModel(config, model, train_dataset, val_dataset,
 
     # Load the model if desired
     if config.load_and_train: 
-        print(f"\n{config.load_and_train}\n")
-        print(f"{config.model_dir}")
-        print(f"\n{config.model_dir}/best_diffusion_model.weights.h5\n")
         model.load_weights(f"{config.model_dir}/best_diffusion_model.weights.h5")
         config.out_dir = config.model_dir
 
@@ -287,6 +284,10 @@ if __name__ == "__main__":
 
     # Assign arguments
     config = AssignArgs(config, args)
+
+    # Load the previous architectural configuration without altering
+    # the current hyperparameters
+    config = LoadPrevConfig(config, f"{config.model_dir}/config_file.pkl")
 
     if config.runtime == "training":
         # Get current time to create output directory

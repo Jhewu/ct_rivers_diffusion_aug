@@ -24,7 +24,7 @@ class Config:
         
         #-TRAINING------------------------------------------------
         # Runtime = ["training", "inference", "inpainting"]
-        self.runtime = "inference"
+        self.runtime = "training"
         self.load_and_train = False
 
         # The amount of stochastic noise used during reverse diffusion
@@ -59,7 +59,7 @@ class Config:
         self.generate_on_epoch = float('inf')
 
         # Inference parameters
-        self.model_dir = "results/L3_2025-01-13_15:04:19"   # ---> This parameter is also used for training, when load_and_train is True 
+        self.model_dir = "results/L2_2025-01-13_15:54:57"   # ---> This parameter is also used for training, when load_and_train is True 
         self.images_to_generate = 5
         self.generate_diffusion_steps = 30
 

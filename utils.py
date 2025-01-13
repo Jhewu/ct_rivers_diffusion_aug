@@ -71,78 +71,15 @@ def AssignArgs(config, args):
     to load the config_file.pkl when necessary (during load and train and during inference)
     """
 
-    # Parameters to keep, if loading config.plk
-    """
-    COMMENT FOR FUTURE JUN: This methodology is only useful for inference, 
-    and for diffusion augmentation. Because config.pkl will overwrite all of 
-    the new variables you set, this is not recommended. Therefore, the best 
-    way will be to configure it manually and not load config.pkl
-    """
-    if args.runtime is not None:
-        config.runtime = args.runtime
-    else:
-        previous_runtime = config.runtime
-    if args.load_and_train is not None:
-        config.load_and_train = args.load_and_train
-    else: 
-        previous_load_and_train = config.load_and_train
-    if args.model_dir is not None:
-        config.model_dir = args.model_dir
-    else: 
-        previous_model_dir = config.model_dir
-    if args.images_to_generate is not None:
-        config.images_to_generate = args.images_to_generate
-    else: 
-        previous_images_to_generate = config.images_to_generate
-    if args.generate_diffusion_steps is not None:
-        config.generate_diffusion_steps = args.generate_diffusion_steps
-    else: 
-        previous_generate_diffusion_steps = config.generate_diffusion_steps
+    # General hyperparameters
     if args.in_dir is not None:
         config.in_dir = args.in_dir
-    else: 
-        previous_in_dir = config.in_dir
     if args.out_dir is not None:
         config.out_dir = args.out_dir
-    else: 
-        previous_out_dir = config.out_dir
-
-    """MODIFY THIS TO BE MORE MODULAR"""
-    if config.load_and_train or config.runtime == "inference": 
-        
-        # Load config_file.pkl here so we can easily restore previous parameters
-        config = load_config_from_pickle(f"{config.model_dir}/config_file.pkl")
-
-        if args.runtime == None: 
-            config.runtime = previous_runtime
-        else: 
-            config.runtime = args.runtime
-        if args.load_and_train == None: 
-            config.load_and_train = previous_load_and_train
-        else: 
-            config.load_and_train = args.load_and_train
-        if args.model_dir == None: 
-            config.model_dir = previous_model_dir
-        else: 
-            config.model_dir = args.model_dir
-        if args.images_to_generate == None: 
-            config.images_to_generate = previous_images_to_generate
-        else: 
-            config.images_to_generate = args.images_to_generate
-        if args.generate_diffusion_steps == None: 
-            config.generate_diffusion_steps = previous_generate_diffusion_steps
-        else: 
-            config.generate_diffusion_steps = args.generate_diffusion_steps
-        if args.in_dir == None: 
-            config.in_dir = previous_in_dir
-        else: 
-            config.in_dir = args.in_dir
-        if args.out_dir == None: 
-            config.out_dir = previous_out_dir
-        else: 
-            config.out_dir = args.out_dir
-
-    # General parameters
+    if args.runtime is not None:
+        config.runtime = args.runtime
+    if args.load_and_train is not None:
+        config.load_and_train = args.load_and_train
     if args.eta is not None:
         config.eta = args.eta
     if args.image_size is not None:
@@ -172,12 +109,46 @@ def AssignArgs(config, args):
     if args.attention_in_up_down_sample is not None:
         config.attention_in_up_down_sample = args.attention_in_up_down_sample
 
+    # Inference hyperparameters
+    if args.model_dir is not None:
+        config.model_dir = args.model_dir
+    if args.images_to_generate is not None:
+        config.images_to_generate = args.images_to_generate
+    if args.generate_diffusion_steps is not None:
+        config.generate_diffusion_steps = args.generate_diffusion_steps
+
     # Running from subprocess
     if args.subprocess:
         config.subprocess = True
     else:
         config.subprocess = False
 
+    return config
+
+def LoadPrevConfig(config, config_path): 
+    if config.load_and_train or config.runtime == "inference": 
+        print(f"\nLoaded config_file.pkl\n")
+        # Load config_file.pkl here so we can easily restore previous parameters
+        prev_config = load_config_from_pickle(config_path)
+
+        # Change the architecture hyperparameters
+        config.embedding_dims = prev_config.embedding_dims
+        config.widths = prev_config.widths
+        config.block_depth = prev_config.block_depth
+        config.attention_in_bottleneck = prev_config.attention_in_bottleneck
+        config.attention_in_up_down_sample = prev_config.attention_in_up_down_sample
+
+        # Change preprocessing hyperparameters
+        config.seed = prev_config.seed
+        config.validation_split = prev_config.validation_split
+        config.image_size = prev_config.image_size
+
+        # Change optimization
+        config.min_signal_rate = prev_config.min_signal_rate
+        config.max_signal_rate = prev_config.max_signal_rate
+    else: 
+        print(f"\nDid not load config_file.pkl\n")
+   
     return config
 
 """
@@ -312,7 +283,6 @@ def load_config_from_pickle(pickle_file_path):
     with open(pickle_file_path, 'rb') as pickle_file:
         # Deserialize the config object from the file
         config = pickle.load(pickle_file)
-    
     return config
 
 def load_dataset(img_folder_name, validation_split, seed, 
