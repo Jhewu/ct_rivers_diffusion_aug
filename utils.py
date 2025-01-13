@@ -40,7 +40,8 @@ def ParseArgs(des):
     parser.add_argument('--num_epochs', type=int, help="Number of epochs for training")
     parser.add_argument('--batch_size', type=int, help="Batch size for training")
     parser.add_argument('--learning_rate', type=float, help="Learning rate")
-    parser.add_argument('--use_mix_precision', action='store_true', help="Whether to use mixed precision training")    parser.add_argument('--gpu_index', type=int, help="Index of the GPU to use")
+    parser.add_argument('--use_mix_precision', action='store_true', help="Whether to use mixed precision training")    
+    parser.add_argument('--gpu_index', type=int, help="Index of the GPU to use")
 
     # U-Net architecture parameters
     parser.add_argument('--embedding_dims', type=int, help="Dimensions for embeddings")
