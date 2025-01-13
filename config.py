@@ -33,21 +33,21 @@ class Config:
         self.image_size = (200, 600)
 
         # Optimization (Training)
-        self.num_epochs = 1
-        self.batch_size = 4
+        self.num_epochs = 300
+        self.batch_size = 8
         self.ema = 0.999                # --> DO NOT CHANGE
-        self.learning_rate = 2.5e-4
+        self.learning_rate = 1e-5
         self.weigth_decay = self.learning_rate/10
-        self.use_mix_precision = True
+        self.use_mix_precision = False
         self.gpu_index = 0
         self.min_signal_rate = 0.01     # --> DO NOT CHANGE
         self.max_signal_rate = 0.95     # --> DO NOT CHANGE
 
         # U-Net architecture
-        self.embedding_dims = 8
-        self.widths = [8, 16, 32]
-        self.block_depth = 1
-        self.attention_in_bottleneck = False
+        self.embedding_dims = 516
+        self.widths = [64, 128, 256, 516]
+        self.block_depth = 3
+        self.attention_in_bottleneck = True
         self.attention_in_up_down_sample = False
 
         # Callback 
@@ -59,9 +59,9 @@ class Config:
         self.generate_on_epoch = float('inf')
 
         # Inference parameters
-        self.model_dir = "results/L2_2025-01-13_15:54:57"   # ---> This parameter is also used for training, when load_and_train is True 
+        self.model_dir = ""   # ---> This parameter is also used for training, when load_and_train is True 
         self.images_to_generate = 5
-        self.generate_diffusion_steps = 30
+        self.generate_diffusion_steps = 50
 
         # Inpainting parameters
         self.inpainting_dir = "inpainting_data"
