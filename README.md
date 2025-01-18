@@ -1,4 +1,4 @@
-# CT DEEP Rivers Diffusion Model
+# CT DEEP Rivers Diffusion Augmentation
 
 ## Overview
 
