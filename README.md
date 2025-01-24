@@ -2,14 +2,18 @@
 
 ## Overview
 
-This research project aims to improve image classification accuracy for CT river images by using diffusion models to artificially augment the dataset. This approach ensures a balanced dataset, which is often it's not the case in environmental image datasets, and exposes the classification model to more image diversity, leading to better generalization. Since the problem we are focused on it's the two category problem category 1: labels 1,2,3 and category 2: 4,5,6, we will want to train 3 diffusion for each label in category 1. 
+This research project aims to improve image classification accuracy for CT river images by using diffusion models to artificially augment the dataset. This approach ensures a balanced dataset, which is often it's not the case in environmental image datasets, and exposes the classification model to more image diversity, leading to better generalization. Since the problem we are focused on is the two category problem category 1: labels 1,2,3 and category 2: 4,5,6, we will want to train 3 diffusion for each label in category 1. 
 
 ![Generated Sample #1](./sample_images/2025-01-08_23_37_11_generated_img_1.jpg)
 
 This repository contains a pipeline with 3 main components, and it's designed to be run in the respective sequential order:
 1. `site_id_balancer.py`, creates a new dataset named `diffusion_data` by  augmenting the original dataset with traditional augmentations (e.g., rotations and horizontal flips). This new dataset will be used to train the diffusion model to ensure no `site_id` bias during inference
-2. The diffusion model itself includes `run_diffusion.py`, `diffusion_model.py`, `u_net_backbone.py`, `config.py`, `utils.py`, and `train_all.py.` These scripts are the main components used to train the model, and perform inference. 
+2. The diffusion model itself includes `run_diffusion.py`, `diffusion_model.py`, `u_net_backbone.py`, `config.py`, `utils.py`, and `train_all.py.` These scripts are the main components used to train the model and perform inference. 
 3. `diffusion_augmentation.py` which uses pre-trained diffusion models (after running `train_all.py`) to perform reverse diffusion to augment the final dataset to be used to train the image classifier
+
+## Tensorflow and Keras Dependencies
+
+This code works with Keras 3.6.0, and Tensorflow 2.16.1 and 2.17.0. Other versions, might conflict, especially Keras 3.7.0 requiring the model to be "explicitly built." Will work on this issue in a future iteration. 
 
 ## CT DEEP Rivers Site ID Balancer (for Diffusion Models)
 
@@ -24,7 +28,7 @@ The script augments all images from each `site_id` folder until the number of im
 The script takes several input arguments:
 
 - **in_dir**: (required) The directory containing labeled folders (e.g., `1`, `2`, ... `6`).
-- **out_dir** (optional): The directory where augmented images will be saved. If not provided, the augmented images will be saved in the current working directory. The **out_dir** will be structured like this: "diffusion_data/flow_1/1" and so on, which is done so to make it easier to fetch when training it on the diffusion model.
+- **out_dir** (optional): The directory where augmented images will be saved. If not provided, the augmented images will be saved in the current working directory. The **out_dir** will be structured like this: "diffusion_data/flow_1/1" and so on, which is done to make it easier to fetch when training it on the diffusion model.
 - **labels** (default = 3): The number of labels (site IDs) to balance and augment. For example:
   - If `labels=3`, the script will augment labels `1`, `2`, and `3`.
   - If `labels=6`, the script will augment labels `1` through `6`.
@@ -84,7 +88,7 @@ The model is a Denoising Diffusion Implicit Diffusion Model (with a 50% stochast
 1. Set `attention_in_bottleneck` to **True** because it significantly improves performance
 2. Set `embedding_dims` to the last width in `widths`. For example, if your `widths` is [64, 128, 256, 516], set the `embedding_dims` to 516. In my experience, it improves the perceptual quality
 3. For `block_depth` a good number is 3-4
-4. I have tried `widths` of **[64, 128, 256, 516]**, **[64, 94, 128, 256]**, **[32, 64, 96 128]**. If you noticed that you set the `widths` to be really high like **[64, 128, 256, 516]**, and the image quality is off, it just means that it has not fully converged. For **[32, 64, 96 128]** it easily converged with 100 epochs, but fails in reproducing good context with label 3 images. 
+4. I have tried `widths` of **[64, 128, 256, 516]**, **[64, 94, 128, 256]**, **[32, 64, 96 128]**. If you noticed that you set the `widths` to be really high like **[64, 128, 256, 516]**, and the image quality is off, it just means that it has not fully converged. For **[32, 64, 96 128]** it easily converged with 100 epochs but failed in reproducing good context with label 3 images. 
 
 <img src="./sample_images/u-net-architecture.png" alt="Generated Sample #1" width="600"/>
 
@@ -129,11 +133,11 @@ For single model training and inference, use `run_diffusion.py.`
     python3 run_diffusion --runtime inference --model_dir results/L2_2025-01-12_14:55:51 --images_to_generate 5 --generate_diffusion_steps 50
     ```
 
-### > Train Mutliple Diffusion Models
+### > Train Multiple Diffusion Models
 
-Since our final goal is to train 3 diffusion model (one for each label), we will be using  `train_all.py` primarily. `train_all.py` serves as a training loop for `run_diffusion.py`. It uses argparse to parse all of the arguments requested to run `run_diffusion.py` (it shares the same argparse arguments). `train_all.py` will require you to provide `--in_dir`, which is the location of your dataset. If you used `site_id_balancer.py` then the `in_dir` path is simply: `pwd/diffusion_data`.
+Since our final goal is to train 3 diffusion models (one for each label), we will be using  `train_all.py` primarily. `train_all.py` serves as a training loop for `run_diffusion.py`. It uses argparse to parse all of the arguments requested to run `run_diffusion.py` (it shares the same argparse arguments). `train_all.py` will require you to provide `--in_dir`, which is the location of your dataset. If you used `site_id_balancer.py` then the `in_dir` path is simply: `pwd/diffusion_data`.
 
-Similar to runnign a single model, you can change hyperparameters by directly modifying the `config.py` or use argparse arguments when calling `train_all.py`. **Note:** If you're using `train_all.py`, the `config.py` file copied to the output directory will not reflect the parameters you used (because it does not update from argparse). Instead, focus on the `config_parameters.txt` file.
+Similar to running a single model, you can change hyperparameters by directly modifying the `config.py` or using argparse arguments when calling `train_all.py`. **Note:** If you're using `train_all.py`, the `config.py` file copied to the output directory will not reflect the parameters you used (because it does not update from argparse). Instead, focus on the `config_parameters.txt` file.
 
 #### How to Use `run_training_loop.py`
 
