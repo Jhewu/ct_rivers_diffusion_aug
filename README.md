@@ -2,7 +2,7 @@
 
 ## Overview
 
-This research project aims to improve image classification accuracy for CT river images by using diffusion models to artificially augment the dataset. This approach ensures a balanced dataset, which is often it's not the case in environmental image datasets, and exposes the classification model to more image diversity, leading to better generalization. Since the problem we are focused on is the two category problem category 1: labels 1,2,3 and category 2: 4,5,6, we will want to train 3 diffusion for each label in category 1. 
+This research project aims to improve image classification accuracy for CT river images by using diffusion models to artificially augment the dataset. This approach ensures a balanced dataset, which is often it's not the case in environmental image datasets, and exposes the classification model to more image diversity, leading to better generalization. Since the problem we are focused on is the two-category problem, category 1: labels 1,2,3, and category 2: 4,5,6, we will want to train 3 diffusion for each label in category 1. 
 
 ![Generated Sample #1](./sample_images/2025-01-08_23_37_11_generated_img_1.jpg)
 
@@ -13,7 +13,7 @@ This repository contains a pipeline with 3 main components, and it's designed to
 
 ## Tensorflow and Keras Dependencies
 
-This code works with Keras 3.6.0, and Tensorflow 2.16.1 and 2.17.0. Other versions, might conflict, especially Keras 3.7.0 requiring the model to be "explicitly built." Will work on this issue in a future iteration. 
+This code works with Keras 3.6.0, and Tensorflow 2.16.1 and 2.17.0. Other versions, might conflict, especially Keras 3.7.0 requiring the model to be "explicitly built." This issue will be fixed in a future iteration. 
 
 ## CT DEEP Rivers Site ID Balancer (for Diffusion Models)
 
@@ -112,7 +112,7 @@ For single model training and inference, use `run_diffusion.py.`
 1. Configure `argparse` arguments like below:
 
     ```
-    python3 run_diffusion.py --in_dir pwd/diffusion_data/L2 --gpu_index 0 --use_mix_precision --num_epochs 200 --learning_rate 1e-5 --batch_size 8 --attention_in_bottleneck
+    python3 run_diffusion.py --in_dir pwd/diffusion_data/L2 --gpu_index 0 --use_mix_precision --num_epochs 200 --learning_rate 1e-5 --batch_size 8 --attention_in_bottleneck --widths 64 128 256 516 --embedding_dims 516 --block_depth 3
     ```
 
 #### Perform Inference (using `config.py`):
@@ -130,7 +130,7 @@ For single model training and inference, use `run_diffusion.py.`
 1. Set `--runtime inference` and provide the directory of the model's weights `--model_dir` like this:   
 
     ```
-    python3 run_diffusion --runtime inference --model_dir results/L2_2025-01-12_14:55:51 --images_to_generate 5 --generate_diffusion_steps 50
+    python3 run_diffusion --runtime inference --model_dir results/L2_2025-01-12_14:55:51 --images_to_generate 5 --generate_diffusion_steps 50 --eta 1
     ```
 
 ### > Train Multiple Diffusion Models
@@ -150,7 +150,7 @@ python3 train_all.py --in_dir pwd/diffusion_data
 ##### If you want to pass different hyperparameters: 
 
 ```
-python3 train_all.py --in_dir pwd/diffusion_data --gpu_index 0 --use_mix_precision --num_epochs 200 --learning_rate 1e-5 --batch_size 8 --attention_in_bottleneck
+python3 train_all.py --in_dir pwd/diffusion_data --gpu_index 0 --use_mix_precision --num_epochs 200 --learning_rate 1e-5 --batch_size 8 --attention_in_bottleneck --widths 64 128 256 516 --embedding_dims 516 --block_depth 3
 ```
 
 ## CT DEEP Rivers Diffusion Augmentation for Image Classification
