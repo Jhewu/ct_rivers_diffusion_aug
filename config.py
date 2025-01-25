@@ -6,7 +6,7 @@ CIRCULAR IMPORT.
 class Config: 
     def __init__(self): 
         """
-        REMINDER: If add anything in the config file, consider 
+        REMINDER: If add anything to the config file, consider 
         adding the arguments to argparse if they are useful
         """
         #-GENERAL PARAMETERS--------------------------------------
@@ -29,7 +29,7 @@ class Config:
 
         # The amount of stochastic noise used during reverse diffusion
         # If 0, it's DDIM (deterministic), if 1, it's DDPM (stochastic)
-        self.eta = 0.5
+        self.eta = 1
         self.image_size = (200, 600)
 
         # Optimization (Training)
