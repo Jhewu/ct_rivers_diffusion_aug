@@ -33,6 +33,7 @@ def DiffusionAugmentation(images_to_aumgment, dest_dir, weight_path, diffusion_s
                "--model_dir", weight_path, 
                "--generate_diffusion_steps", str(diffusion_steps), 
                "--images_to_generate", str(images_to_aumgment), 
+               "--eta", str(1), 
                "--subprocess"]
 
     # Run the subprocess  
