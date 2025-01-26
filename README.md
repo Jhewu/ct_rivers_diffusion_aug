@@ -38,7 +38,7 @@ The script takes several input arguments:
 
 #### Example Usage (using default values)
 ```bash
-python3 site_id_balancer.py --in_dir /path/to/original_dataset
+python3 site_id_balancer.py --in_dir flow_600_200
 ```
 
 ## CT DEEP Rivers Diffusion Model
@@ -112,7 +112,7 @@ For single model training and inference, use `run_diffusion.py.`
 1. Configure `argparse` arguments like below:
 
     ```
-    python3 run_diffusion.py --in_dir pwd/diffusion_data/L2 --gpu_index 0 --use_mix_precision --num_epochs 200 --learning_rate 1e-5 --batch_size 8 --attention_in_bottleneck --widths 64 128 256 516 --embedding_dims 516 --block_depth 3
+    python3 run_diffusion.py --in_dir diffusion_data/L2 --gpu_index 0 --use_mix_precision --num_epochs 200 --learning_rate 1e-5 --batch_size 8 --attention_in_bottleneck --widths 64 128 256 516 --embedding_dims 516 --block_depth 3
     ```
 
 #### Perform Inference (using `config.py`):
