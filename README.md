@@ -144,13 +144,13 @@ Similar to running a single model, you can change hyperparameters by directly mo
 ##### If you want to use default parameters:  
 
 ```
-python3 train_all.py --in_dir pwd/diffusion_data
+python3 train_all.py --in_dir diffusion_data
 ```
 
 ##### If you want to pass different hyperparameters: 
 
 ```
-python3 train_all.py --in_dir pwd/diffusion_data --gpu_index 0 --use_mix_precision --num_epochs 200 --learning_rate 1e-5 --batch_size 8 --attention_in_bottleneck --widths 64 128 256 516 --embedding_dims 516 --block_depth 3
+python3 train_all.py --in_dir diffusion_data --gpu_index 0 --use_mix_precision --num_epochs 200 --learning_rate 1e-5 --batch_size 8 --attention_in_bottleneck --widths 64 128 256 516 --embedding_dims 516 --block_depth 3
 ```
 
 ## CT DEEP Rivers Diffusion Augmentation for Image Classification
