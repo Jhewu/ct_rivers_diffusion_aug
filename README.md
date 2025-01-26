@@ -167,6 +167,6 @@ This script balances and performs the necessary image augmentations (e.g. revers
 #### Example
 
 ```bash
-python3 diffusion_augmentation.py --in_dir path/to/original_dataset --weight_paths results/L1_date results/L2_date results/L3_date
+python3 diffusion_augmentation.py --in_dir flow_200_600 --weight_paths results/L1_date results/L2_date results/L3_date
 ```
 ![Generated Sample #3](./sample_images/2025-01-08_23_37_11_generated_img_5.jpg)
