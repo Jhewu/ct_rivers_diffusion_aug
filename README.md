@@ -130,7 +130,7 @@ For single model training and inference, use `run_diffusion.py.`
 1. Set `--runtime inference` and provide the directory of the model's weights `--model_dir` like this:   
 
     ```
-    python3 run_diffusion --runtime inference --model_dir results/L2_2025-01-12_14:55:51 --images_to_generate 5 --generate_diffusion_steps 50 --eta 1
+    python3 run_diffusion.py --runtime inference --model_dir results/L2_2025-01-12_14:55:51 --images_to_generate 5 --generate_diffusion_steps 50 --eta 1
     ```
 
 ### > Train Multiple Diffusion Models
