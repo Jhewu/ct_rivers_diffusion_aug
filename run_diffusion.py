@@ -206,6 +206,8 @@ if __name__ == "__main__":
             print(f"Set to growing memory\n")
         except RuntimeError as e: print(e)
 
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
     # Only error messages will be displayed
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 

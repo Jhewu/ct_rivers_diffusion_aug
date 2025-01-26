@@ -11,9 +11,11 @@ This repository contains a pipeline with 3 main components, and it's designed to
 2. The diffusion model itself includes `run_diffusion.py`, `diffusion_model.py`, `u_net_backbone.py`, `config.py`, `utils.py`, and `train_all.py.` These scripts are the main components used to train the model and perform inference. 
 3. `diffusion_augmentation.py` which uses pre-trained diffusion models (after running `train_all.py`) to perform reverse diffusion to augment the final dataset to be used to train the image classifier
 
-## Tensorflow and Keras Dependencies
+## Setting up Conda environment
 
-This code works with Keras 3.6.0, and Tensorflow 2.16.1 and 2.17.0. Other versions, might conflict, especially Keras 3.7.0 requiring the model to be "explicitly built." This issue will be fixed in a future iteration. 
+```bash
+conda env create -f environment.yml
+```
 
 ## CT DEEP Rivers Site ID Balancer (for Diffusion Models)
 
