@@ -4,7 +4,7 @@
 
 This research project aims to improve image classification accuracy for CT river images by using diffusion models to artificially augment the dataset. This approach ensures a balanced dataset, which is often it's not the case in environmental image datasets, and exposes the classification model to more image diversity, leading to better generalization. Since the problem we are focused on is the two-category problem, category 1: labels 1,2,3, and category 2: 4,5,6, we will want to train 3 diffusion for each label in category 1. 
 
-![Generated Sample #1](./sample_images/2025-01-08_23_37_11_generated_img_1.jpg)
+![Generated Sample #1](./sample_images/S0_D012525_012525_0_21_DM_AUG_L2.JPG)
 
 This repository contains a pipeline with 3 main components, and it's designed to be run in the respective sequential order:
 1. `site_id_balancer.py`, creates a new dataset named `diffusion_data` by  augmenting the original dataset with traditional augmentations (e.g., rotations and horizontal flips). This new dataset will be used to train the diffusion model to ensure no `site_id` bias during inference
@@ -45,7 +45,7 @@ python3 site_id_balancer.py --in_dir flow_600_200
 
 The model is a Denoising Diffusion Implicit Diffusion Model (with a 50% stochastic process), built on a U-Net backbone, implemented in Tensorflow/Keras. The scripts encompassing the diffusion model are `run_diffusion.py`, `diffusion_model.py`, `u_net_backbone.py`, `config.py`, `utils.py`, and `train_all.py.` 
 
-![Generated Sample #2](./sample_images/2025-01-08_23_37_11_generated_img_2.jpg)
+![Generated Sample #2](./sample_images/S0_D012525_012525_0_14_DM_AUG_L2.JPG)
 
 ### > Hyperparameters descriptions 
 
@@ -169,4 +169,4 @@ This script balances and performs the necessary image augmentations (e.g. revers
 ```bash
 python3 diffusion_augmentation.py --in_dir flow_200_600 --weight_paths results/L1_date results/L2_date results/L3_date
 ```
-![Generated Sample #3](./sample_images/2025-01-08_23_37_11_generated_img_5.jpg)
+![Generated Sample #3](./sample_images/S0_D012525_012525_0_17_DM_AUG_L2.JPG)
