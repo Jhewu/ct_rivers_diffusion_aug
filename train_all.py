@@ -17,7 +17,7 @@ def ParseArgs(des):
 
     # Training parameters
     parser.add_argument('--runtime', type=str, choices=["training", "inference", "inpainting"], help="Run mode: training or inference or inpainting")
-    parser.add_argument('--load_and_train', type=bool, help="Whether to load a pre-trained model to train")
+    parser.add_argument('--load_and_train', action='store_true', help="Whether to load a pre-trained model to train")
     parser.add_argument('--eta', type=float, help="Eta parameter for noise scheduling")
     parser.add_argument('--image_size', type=tuple, help="Size of the input images (height, width)")
 
@@ -25,15 +25,15 @@ def ParseArgs(des):
     parser.add_argument('--num_epochs', type=int, help="Number of epochs for training")
     parser.add_argument('--batch_size', type=int, help="Batch size for training")
     parser.add_argument('--learning_rate', type=float, help="Learning rate")
-    parser.add_argument('--use_mix_precision', type=bool, help="Whether to use mixed precision training")
+    parser.add_argument('--use_mix_precision', action='store_true', help="Whether to use mixed precision training")
     parser.add_argument('--gpu_index', type=int, help="Index of the GPU to use")
 
     # U-Net architecture parameters
     parser.add_argument('--embedding_dims', type=int, help="Dimensions for embeddings")
     parser.add_argument('--widths', type=int, nargs='+', help="Widths for each convolutional layer")
     parser.add_argument('--block_depth', type=int, help="Depth of the U-Net blocks")
-    parser.add_argument('--attention_in_bottleneck', type=bool, help="Whether to use attention in bottleneck")
-    parser.add_argument('--attention_in_up_down_sample', type=bool, help="Whether to use attention in up/down sampling layers")
+    parser.add_argument('--attention_in_bottleneck', action='store_true', help="Whether to use attention in bottleneck")
+    parser.add_argument('--attention_in_up_down_sample', action='store_true', help="Whether to use attention in up/down sampling layers")
 
     # Inference parameters
     parser.add_argument('--model_dir', type=str, help="The dir where the model's weight is located in")
@@ -49,7 +49,7 @@ def RunDiffusion(args):
     the list, and then pass it to run_diffusion.py
     """
     # Construct the command to run the script with arguments
-    command = ['python', 'run_diffusion.py']
+    command = ['python3', 'run_diffusion.py']
 
     # General parameters
     if args.in_dir is not None:
@@ -61,8 +61,8 @@ def RunDiffusion(args):
     # Training parameters
     if args.runtime is not None:
         command.extend(['--runtime', args.runtime])
-    if args.load_and_train is not None:
-        command.extend(['--load_and_train', str(args.load_and_train)])
+    if args.load_and_train:
+        command.extend(['--load_and_train'])
     if args.eta is not None:
         command.extend(['--eta', str(args.eta)])
     if args.image_size is not None:
@@ -75,8 +75,8 @@ def RunDiffusion(args):
         command.extend(['--batch_size', str(args.batch_size)])
     if args.learning_rate is not None:
         command.extend(['--learning_rate', str(args.learning_rate)])
-    if args.use_mix_precision is not None:
-        command.extend(['--use_mix_precision', str(args.use_mix_precision)])
+    if args.use_mix_precision:
+        command.extend(['--use_mix_precision'])
     if args.gpu_index is not None:
         command.extend(['--gpu_index', str(args.gpu_index)])
 
@@ -84,13 +84,16 @@ def RunDiffusion(args):
     if args.embedding_dims is not None:
         command.extend(['--embedding_dims', str(args.embedding_dims)])
     if args.widths is not None:
-        command.extend(['--widths', ' '.join(map(str, args.widths))])  # Assuming widths is a list
+        command.extend(['--widths'])
+        for width in args.widths: 
+            command.extend([str(width)])  # Pass widths as a single string without commas
+        # command.extend(['--widths', ' '.join(map(str, args.widths))])  # Assuming widths is a list
     if args.block_depth is not None:
         command.extend(['--block_depth', str(args.block_depth)])
-    if args.attention_in_bottleneck is not None:
-        command.extend(['--attention_in_bottleneck', str(args.attention_in_bottleneck)])
-    if args.attention_in_up_down_sample is not None:
-        command.extend(['--attention_in_up_down_sample', str(args.attention_in_up_down_sample)])
+    if args.attention_in_bottleneck:
+        command.extend(['--attention_in_bottleneck'])
+    if args.attention_in_up_down_sample:
+        command.extend(['--attention_in_up_down_sample'])
 
     # Run the command using subprocess
     label_dirs = os.listdir(dataset_dir)
@@ -104,23 +107,32 @@ def RunDiffusion(args):
         # Extend the new directory to the command list
         command.extend(['--in_dir', label_dataset_path])
 
-        # Run the subprocess  
-        result = subprocess.run(command, check=True, 
-                                capture_output=True,
-                                text=True)
+        try: 
+            # Run the subprocess  
+            result = subprocess.run(command, check=True, 
+                                    capture_output=True,
+                                    text=True)
 
-        # Print the result
-        print("Output:", result.stdout)  # Output from the script
-        print("Error:", result.stderr)   # Any errors that occurred
+            # Print the result
+            print("Output:", result.stdout)  # Output from the script
+            print("Error:", result.stderr)   # Any errors that occurred
+            
+            # Attempt at clearing memory
+            del result
+            gc.collect()
+            
+            # Wait for a bit
+            time_to_wait = 5
+            print(f"Waiting for {time_to_wait} seconds, until the next execution...")
+            time.sleep(time_to_wait)
+            
+        except subprocess.CalledProcessError as e: 
+            # Handle the error and print more detailed information
+            print(f"Command '{e.cmd}' returned non-zero exit status {e.returncode}.")
+            print("Output:", e.output)
+            print("Error:", e.stderr)
+            
 
-        # Attempt at clearing memory
-        del result
-        gc.collect()
-        
-        # Wait for a bit
-        time_to_wait = 5
-        print(f"Waiting for {time_to_wait} seconds, until the next execution...")
-        time.sleep(time_to_wait)
     
 if __name__ == "__main__":
     des=""" 

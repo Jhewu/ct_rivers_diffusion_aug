@@ -33,7 +33,7 @@ class Config:
         self.image_size = (200, 600)
 
         # Optimization (Training)
-        self.num_epochs = 300
+        self.num_epochs = 1#300
         self.batch_size = 8
         self.ema = 0.999                # --> DO NOT CHANGE
         self.learning_rate = 1e-5
@@ -44,9 +44,9 @@ class Config:
         self.max_signal_rate = 0.95     # --> DO NOT CHANGE
 
         # U-Net architecture
-        self.embedding_dims = 516
-        self.widths = [64, 128, 256, 516]
-        self.block_depth = 3
+        self.embedding_dims = 64#516
+        self.widths = [8,16,32,64]#[64, 128, 256, 516]
+        self.block_depth = 1#3
         self.attention_in_bottleneck = True
         self.attention_in_up_down_sample = False
 
