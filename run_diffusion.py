@@ -77,6 +77,13 @@ def TrainDiffusionModel(config, model, train_dataset, val_dataset,
     shutil.copy("config.py", f"{config.out_dir}/")
     print(f"\nConfig copied to {config.out_dir}/")
 
+    # Build the model explicitly
+    if model.built == False: 
+        input_shape_1 = (model.batch_size, model.image_size[0], model.image_size[1], 3)  # Shape for noisy images
+        input_shape_2 = (model.batch_size, 1, 1, 1)  # Shape for noise rates
+        model.build([input_shape_1, input_shape_2])
+        print(f"\nThe model is built {model.built}\n")
+
     # Train the model
     history = model.fit(
         train_dataset,
@@ -95,6 +102,13 @@ def TrainDiffusionModel(config, model, train_dataset, val_dataset,
     save_history(history, config.out_dir)
     
 def InferenceDiffusionModel(model): 
+    if model.built == False: 
+        # Build the model explicitly
+        input_shape_1 = (model.batch_size, model.image_size[0], model.image_size[1], 3)  # Shape for noisy images
+        input_shape_2 = (model.batch_size, 1, 1, 1)  # Shape for noise rates
+        model.build([input_shape_1, input_shape_2])
+        print(f"\nThe model is built {model.built}\n")
+
     # Load the model's weights
     model.load_weights(f"{config.model_dir}/best_diffusion_model.weights.h5")
 
@@ -193,7 +207,7 @@ if __name__ == "__main__":
     # Warn the user of the version compatibilities
     print(keras.__version__)
     print(tf.__version__)
-    print("\nWARNING: If Keras version is not 3.6.0, and Tensorflow 2.16.1 or 2.17.0 you might run into issues\n")
+    # print("\nWARNING: If Keras version is not 3.6.0, and Tensorflow 2.16.1 or 2.17.0 you might run into issues\n")
 
     # Set backend to tensorflow
     os.environ["KERAS_BACKEND"] = "tensorflow"
@@ -314,11 +328,20 @@ if __name__ == "__main__":
         # Get callbacks
         generate_image_callback, last_checkpoint_callback, checkpoint_callback, early_stop_callback, csv_callback = GetCallbacks(config)
 
+        # Log the parameters of config and save as a pickle file
+        log_config_parameters(config, f"{config.model_dir}/config_parameters.txt")
+        save_config_to_pickle(config, f"{config.model_dir}/config_file.pkl")
+
         # Train the Diffusion Model
         TrainDiffusionModel(config, model, train_dataset, val_dataset, 
                         generate_image_callback, last_checkpoint_callback, 
                         checkpoint_callback, early_stop_callback, csv_callback)
-               
+        
+        # Log the parameters of config and save as a pickle file again (replace the other ones)
+        # because in the Training function, I need to consider load and train. 
+        log_config_parameters(config, f"{config.model_dir}/config_parameters.txt")
+        save_config_to_pickle(config, f"{config.model_dir}/config_file.pkl")
+ 
         # Perform Inference after training
         if not config.use_mix_precision: 
             mixed_precision.set_global_policy("mixed_float16")
@@ -326,12 +349,8 @@ if __name__ == "__main__":
         else: 
             mixed_precision.set_global_policy("float32")
             print("\nDefault, using float32\n")
-        InferenceDiffusionModel(model)        
-
-        # Log the parameters of config and save as a pickle file
-        log_config_parameters(config, f"{config.model_dir}/config_parameters.txt")
-        save_config_to_pickle(config, f"{config.model_dir}/config_file.pkl")
-
+        InferenceDiffusionModel(model)       
+        
         print(f"\nFinish training for {config.num_epochs}. Check {config.out_dir} for the model")
                             
     elif config.runtime == "inference":

@@ -17,6 +17,8 @@ This repository contains a pipeline with 3 main components, and it's designed to
 conda env create -f environment.yml
 ```
 
+**Note:** Keras 3.8.0 and Tensorflow 2.18.0 also works now!
+
 ## CT DEEP Rivers Site ID Balancer (for Diffusion Models)
 
 This script balances and performs the necessary image augmentations (e.g., 5-degree rotations + horizontal flips) on river stream images from CT DEEP, to prepare the dataset for diffusion model training. Since the dataset is unbalanced, training it directly (without augmentation) may cause the diffusion model to generate more images from certain site IDs. To compensate for this, we augment the dataset, ensuring a balanced distribution for training. The default augmentation process includes:

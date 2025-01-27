@@ -31,6 +31,11 @@ class DiffusionModel(keras.Model):
         self.min_signal_rate = min_signal_rate
         self.batch_size = batch_size
         self.ema = ema
+        
+    def build(self, input_shape):
+        # Call the network with dummy inputs to ensure it's built
+        self.network.build([input_shape, input_shape[0]])
+        super(DiffusionModel, self).build(input_shape)
 
     def compile(self, **kwargs):
         """

@@ -24,7 +24,7 @@ class Config:
         
         #-TRAINING------------------------------------------------
         # Runtime = ["training", "inference", "inpainting"]
-        self.runtime = "inference"
+        self.runtime = "training"
         self.load_and_train = False
 
         # The amount of stochastic noise used during reverse diffusion
@@ -33,7 +33,7 @@ class Config:
         self.image_size = (200, 600)
 
         # Optimization (Training)
-        self.num_epochs = 1#300
+        self.num_epochs = 300
         self.batch_size = 8
         self.ema = 0.999                # --> DO NOT CHANGE
         self.learning_rate = 1e-5
@@ -44,10 +44,10 @@ class Config:
         self.max_signal_rate = 0.95     # --> DO NOT CHANGE
 
         # U-Net architecture
-        self.embedding_dims = 64#516
-        self.widths = [8,16,32,64]#[64, 128, 256, 516]
-        self.block_depth = 1#3
-        self.attention_in_bottleneck = True
+        self.embedding_dims = 256
+        self.widths = [64, 96, 128, 256]
+        self.block_depth = 3
+        self.attention_in_bottleneck = False
         self.attention_in_up_down_sample = False
 
         # Callback 
@@ -59,9 +59,9 @@ class Config:
         self.generate_on_epoch = float('inf')
 
         # Inference parameters
-        self.model_dir = "results/L2_2025-01-17_19:49:03"   # ---> This parameter is also used for training, when load_and_train is True 
-        self.images_to_generate = 3
-        self.generate_diffusion_steps = 1
+        self.model_dir = "results/L2_2025-01-27_00:54:41"   # ---> This parameter is also used for training, when load_and_train is True 
+        self.images_to_generate = 5
+        self.generate_diffusion_steps = 30
 
         # Inpainting parameters
         self.inpainting_dir = "inpainting_data"
