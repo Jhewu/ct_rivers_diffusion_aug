@@ -134,7 +134,7 @@ def InferenceDiffusionModel(model):
     label = os.path.basename(config.in_dir)
 
     # Set batch size for generation
-    batch_size = 5
+    batch_size = 30
 
     # Iterate through num_images
     for i in range(0, config.images_to_generate, batch_size): 
