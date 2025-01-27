@@ -98,9 +98,6 @@ def InferenceDiffusionModel(model):
     # Load the model's weights
     model.load_weights(f"{config.model_dir}/best_diffusion_model.weights.h5")
 
-    # Generate the images
-    generated_images = model.generate(config.images_to_generate, config.generate_diffusion_steps)
-
     # Create directory in model's folder and save the images
     if config.subprocess: 
         # When running diffusion_augmentation.py
@@ -111,6 +108,7 @@ def InferenceDiffusionModel(model):
     else:
         generated_dir = os.path.join(config.model_dir, "generated_images")
 
+    # Create the directory if it does not exist
     if not os.path.exists(generated_dir): 
         os.makedirs(generated_dir)
 
@@ -121,13 +119,25 @@ def InferenceDiffusionModel(model):
     # Get label
     label = os.path.basename(config.in_dir)
 
-    # Save the images in the folder with the 
-    # corresponding naming convention
-    index = 1
-    for image in generated_images: 
-        image_name = f"S0_D{formatted_date}_{formatted_date}_0_{index}_DM_AUG_{label}.JPG"
-        tf.keras.preprocessing.image.save_img(f"{generated_dir}/{image_name}", image) 
-        index = index + 1
+    # Set batch size for generation
+    batch_size = 5
+
+    # Iterate through num_images
+    for i in range(0, config.images_to_generate, batch_size): 
+        # Determine the end of the current batch
+        end = min(i + batch_size, config.images_to_generate)
+        batch_count = end - i
+        
+        # Generate the images
+        generated_images = model.generate(batch_count, config.generate_diffusion_steps)
+
+        # Save the images in the folder with the 
+        # corresponding naming convention
+        index = 1
+        for image in generated_images: 
+            image_name = f"S0_D{formatted_date}_{formatted_date}_0_{i}{index}_DM_AUG_{label}.JPG"
+            tf.keras.preprocessing.image.save_img(f"{generated_dir}/{image_name}", image) 
+            index = index + 1
 
 def ContextualInpainting(model, config): 
     """
