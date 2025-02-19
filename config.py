@@ -13,14 +13,14 @@ class Config:
         # The location of the dataset
         # The in_dir will only work if it contains one more folder
         # within it, with the images, e.g. in_dir/1/images.JPG, 
-        self.in_dir = "diffusion_data/L2"            
+        self.in_dir = "diffusion_data/cat1"            
         self.out_dir = "results"   
-        self.run_description = ""
+        self.run_description = "Running it on all three dataset"
 
         #-PREPROCESSING-------------------------------------------
         # Seed for the dataset split
         self.seed = 42
-        self.validation_split = 0.15
+        self.validation_split = 0
         
         #-TRAINING------------------------------------------------
         # Runtime = ["training", "inference", "inpainting"]
@@ -59,7 +59,7 @@ class Config:
         self.generate_on_epoch = float('inf')
 
         # Inference parameters
-        self.model_dir = "results/L2_2025-01-27_00:54:41"   # ---> This parameter is also used for training, when load_and_train is True 
+        self.model_dir = "results/"   # ---> This parameter is also used for training, when load_and_train is True 
         self.images_to_generate = 5
         self.generate_diffusion_steps = 30
 

@@ -292,46 +292,48 @@ def load_dataset(img_folder_name, validation_split, seed,
     """
     cwd = os.getcwd()
     img_dir = os.path.join(cwd, img_folder_name)
-    train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-        img_dir, 
-        validation_split = validation_split,
-        subset="training", 
-        seed = seed,
-        image_size = (image_size[0], image_size[1]),  
-        batch_size = None,
-        shuffle = True,
-        crop_to_aspect_ratio = True,
-        pad_to_aspect_ratio = False,
-    )
-    val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-        img_dir, 
-        validation_split = validation_split,
-        subset="validation", 
-        seed = seed,
-        image_size = (image_size[0], image_size[1]), 
-        batch_size = None,
-        shuffle = True,
-        crop_to_aspect_ratio = True,
-        pad_to_aspect_ratio = False,
-    )
+
+    def load_data(split): 
+        dataset = tf.keras.preprocessing.image_dataset_from_directory(
+            img_dir, 
+            validation_split = validation_split,
+            subset= split,
+            seed = seed,
+            image_size = (image_size[0], image_size[1]),  
+            batch_size = None,
+            shuffle = True,
+            crop_to_aspect_ratio = True,
+            pad_to_aspect_ratio = False,)
+        return dataset
+
+    if validation_split > 0:     
+        train_ds = load_data("training")
+        val_ds = load_data("validation")
+    else: 
+        train_ds = load_data(None)
+        val_ds = None
+    
     return train_ds, val_ds
 
 def prepare_dataset(train_ds, val_ds, batch_size): 
     """
     Prepares the dataset for training, used in combination with load_dataset
     """
-    train_ds = (train_ds
-        .map(normalize_image, num_parallel_calls=tf.data.AUTOTUNE) # each dataset has the structure
-        .cache()                                                   # (image, labels) when inputting to 
-        .shuffle(10 * batch_size)
-        .batch(batch_size, drop_remainder=True)
-        .prefetch(buffer_size=tf.data.AUTOTUNE))
-    val_ds = (val_ds
-        .map(normalize_image, num_parallel_calls=tf.data.AUTOTUNE)
-        .cache()
-        .shuffle(10 * batch_size)
-        .batch(batch_size, drop_remainder=True)
-        .prefetch(buffer_size=tf.data.AUTOTUNE)) # THIS IS A PREFETCH DATASET
+    def prepare(ds): 
+        ds = (ds
+            .map(normalize_image, num_parallel_calls=tf.data.AUTOTUNE) # each dataset has the structure
+            .cache()                                                   # (image, labels) when inputting to 
+            .shuffle(10 * batch_size)
+            .batch(batch_size, drop_remainder=True)
+            .prefetch(buffer_size=tf.data.AUTOTUNE))
+        return ds
+    
+    if val_ds == None:     
+        train_ds = prepare(train_ds)
+    else: 
+        train_ds = prepare(train_ds)
+        val_ds = prepare(val_ds)
+        
     return train_ds, val_ds
 
 def normalize_image(images, _):    

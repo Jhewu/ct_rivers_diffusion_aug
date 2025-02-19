@@ -32,6 +32,7 @@ def PrepareData_LoadModel(config):
     # Load and prepare the dataset
     train_dataset, val_dataset = load_dataset(config.in_dir, config.validation_split, 
                                               config.seed, config.image_size)
+
     train_dataset, val_dataset = prepare_dataset(train_dataset, val_dataset, config.batch_size)
     
     # Create and compile the model
@@ -134,7 +135,7 @@ def InferenceDiffusionModel(model):
     label = os.path.basename(config.in_dir)
 
     # Set batch size for generation
-    batch_size = 30
+    batch_size = 5
 
     # Iterate through num_images
     for i in range(0, config.images_to_generate, batch_size): 
